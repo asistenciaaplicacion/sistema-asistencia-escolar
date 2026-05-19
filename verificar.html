@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Validación de documento</title>
+
+  <style>
+    body{
+      font-family: Arial, sans-serif;
+      background:#f3f4f6;
+      margin:0;
+      padding:0;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:100vh;
+    }
+
+    .contenedor{
+      background:white;
+      width:90%;
+      max-width:500px;
+      padding:25px;
+      border-radius:16px;
+      box-shadow:0 4px 15px rgba(0,0,0,0.15);
+      text-align:center;
+    }
+
+    .logo{
+      width:90px;
+      margin-bottom:10px;
+    }
+
+    h1{
+      color:#1565c0;
+      margin-bottom:5px;
+    }
+
+    input{
+      width:90%;
+      padding:12px;
+      margin-top:15px;
+      border:1px solid #ccc;
+      border-radius:8px;
+      font-size:16px;
+    }
+
+    button{
+      margin-top:15px;
+      padding:12px 20px;
+      border:none;
+      border-radius:8px;
+      background:#1565c0;
+      color:white;
+      font-weight:bold;
+      cursor:pointer;
+    }
+
+    .resultado{
+      margin-top:20px;
+      padding:15px;
+      border-radius:10px;
+      display:none;
+      text-align:left;
+    }
+
+    .valido{
+      background:#dcfce7;
+      border:1px solid #16a34a;
+      color:#166534;
+    }
+
+    .invalido{
+      background:#fee2e2;
+      border:1px solid #dc2626;
+      color:#991b1b;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="contenedor">
+
+    <img src="logo.png" class="logo">
+
+    <h1>Validación de documento</h1>
+
+    <p>
+      Ingresa el folio del documento o escanea el código QR.
+    </p>
+
+    <input
+      type="text"
+      id="folio"
+      placeholder="Ejemplo: IND-1778736171742">
+
+    <button onclick="validarDocumento()">
+      Validar documento
+    </button>
+
+    <button onclick="mostrarBuscadorPDFInstitucional()">
+  Buscar PDF institucional
+</button>
+
+    <div id="resultado" class="resultado"></div>
+
+<div id="panelPDFInstitucional" class="form-admin" style="display:none;">
+  <h3>Buscador institucional de PDFs</h3>
+
+  <input
+    type="text"
+    id="busquedaPDFInstitucional"
+    placeholder="Buscar por folio, alumno, grupo o tipo">
+
+  <button onclick="buscarPDFInstitucional()">
+    Buscar
+  </button>
+
+  <button onclick="ocultarBuscadorPDFInstitucional()">
+    Cancelar
+  </button>
+
+  <div id="resultadoPDFInstitucional"></div>
+</div>
+
+  </div>
+
+  
+
+  <script>
+    const API = 'https://script.google.com/macros/s/AKfycby9ECLKPemfVfkFaFiPHRUJBM-2YqtyKWiADWRIyKudJfGV0LyvU0nB6HfLe4eN7OF7/exec';
+
+    window.onload = function(){
+
+      const parametros =
+        new URLSearchParams(window.location.search);
+
+      const folio =
+        parametros.get('folio');
+
+      if(folio){
+        document.getElementById('folio').value = folio;
+        validarDocumento();
+      }
+    };
+
+    function validarDocumento(){
+
+      const folio =
+        document.getElementById('folio').value.trim();
+
+      const resultado =
+        document.getElementById('resultado');
+
+      if(folio === ''){
+        resultado.style.display = 'block';
+        resultado.className = 'resultado invalido';
+        resultado.innerHTML = 'Ingresa un folio para validar.';
+        return;
+      }
+
+      resultado.style.display = 'block';
+      resultado.className = 'resultado';
+      resultado.innerHTML = 'Validando documento...';
+
+      fetch(API + '?accion=validarPDF&folio=' + encodeURIComponent(folio))
+        .then(r => r.json())
+        .then(data => {
+
+          if(data.success && data.encontrado){
+
+            resultado.className = 'resultado valido';
+
+            resultado.innerHTML = `
+              <h3>✅ Documento válido</h3>
+              <p><strong>Folio:</strong> ${data.folio}</p>
+              <p><strong>Fecha:</strong> ${data.fecha}</p>
+              <p><strong>Alumno:</strong> ${data.alumno}</p>
+              <p><strong>Grupo:</strong> ${data.grupo}</p>
+              <p><strong>Tipo:</strong> ${data.tipo}</p>
+            `;
+
+          }else{
+
+            resultado.className = 'resultado invalido';
+
+            resultado.innerHTML = `
+              <h3>❌ Documento no encontrado</h3>
+              <p>El folio no existe en el registro institucional.</p>
+            `;
+          }
+
+        })
+        .catch(error => {
+
+          resultado.className = 'resultado invalido';
+
+          resultado.innerHTML = `
+            <h3>❌ Error de conexión</h3>
+            <p>No se pudo consultar la base institucional.</p>
+          `;
+
+          console.error(error);
+        });
+    }
+
+function mostrarBuscadorPDFInstitucional(){
+
+  document.getElementById('panelPDFInstitucional').style.display = 'block';
+
+}
+
+function ocultarBuscadorPDFInstitucional(){
+
+  document.getElementById('panelPDFInstitucional').style.display = 'none';
+
+  document.getElementById('busquedaPDFInstitucional').value = '';
+
+  document.getElementById('resultadoPDFInstitucional').innerHTML = '';
+
+}
+
+function buscarPDFInstitucional(){
+
+  const busqueda =
+    document.getElementById('busquedaPDFInstitucional').value.trim();
+
+  const resultado =
+    document.getElementById('resultadoPDFInstitucional');
+
+  if(busqueda === ''){
+    resultado.innerHTML = `
+      <p style="color:#991b1b;">
+        Escribe un folio, alumno, grupo o tipo para buscar.
+      </p>
+    `;
+    return;
+  }
+
+  resultado.innerHTML = 'Buscando documentos...';
+
+  fetch(API + '?accion=buscarPDFInstitucional&busqueda=' + encodeURIComponent(busqueda))
+    .then(r => r.json())
+    .then(data => {
+
+      if(data.success && data.resultados.length > 0){
+
+        resultado.innerHTML = data.resultados.map(pdf => `
+          <div style="
+            background:white;
+            border:1px solid #d1d5db;
+            border-radius:10px;
+            padding:12px;
+            margin-top:10px;
+          ">
+            <p><strong>Folio:</strong> ${pdf.folio}</p>
+            <p><strong>Fecha:</strong> ${pdf.fecha}</p>
+            <p><strong>Alumno:</strong> ${pdf.alumno}</p>
+            <p><strong>Grupo:</strong> ${pdf.grupo}</p>
+            <p><strong>Tipo:</strong> ${pdf.tipo}</p>
+            <a href="${pdf.url}" target="_blank">
+              Abrir validación
+            </a>
+          </div>
+        `).join('');
+
+      }else{
+
+        resultado.innerHTML = `
+          <p style="color:#991b1b;">
+            No se encontraron documentos.
+          </p>
+        `;
+
+      }
+
+    })
+    .catch(error => {
+
+      resultado.innerHTML = `
+        <p style="color:#991b1b;">
+          Error al consultar la base institucional.
+        </p>
+      `;
+
+      console.error(error);
+    });
+}
+
+  </script>
+
+</body>
+</html>

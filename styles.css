@@ -1,0 +1,1575 @@
+body{
+
+    font-family: Arial;
+    background:#f5f5f5;
+    margin:0;
+    padding:20px;
+}
+
+.container{
+
+    width:100%;
+}
+
+.encabezado{
+
+    display:flex;
+    align-items:center;
+    gap:20px;
+
+    margin-bottom:20px;
+
+    background:white;
+
+    padding:20px;
+
+    border-radius:10px;
+}
+
+.logo{
+
+    width:90px;
+    height:90px;
+    object-fit:contain;
+}
+
+.titulo h1{
+
+    margin:0;
+    font-size:28px;
+}
+
+.titulo h2{
+
+    margin:5px 0;
+    color:#1565c0;
+}
+
+.controles{
+
+  display:flex;
+  align-items:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+
+}
+
+.buscador-multiple{
+  margin-top:0;
+  margin-bottom:0;
+}
+
+button{
+
+  padding:12px 20px;
+
+  border:none;
+
+  background:#1565c0;
+
+  color:white;
+
+  cursor:pointer;
+
+  border-radius:10px;
+
+  font-weight:bold;
+
+  transition:
+    background 0.2s,
+    transform 0.15s,
+    box-shadow 0.2s;
+
+  box-shadow:
+    0 3px 8px rgba(0,0,0,0.12);
+}
+
+/* HOVER */
+
+button:hover{
+
+  background:#0d47a1;
+
+  transform:translateY(-1px);
+
+  box-shadow:
+    0 6px 14px rgba(0,0,0,0.18);
+}
+
+/* CLICK */
+
+button:active{
+
+  transform:scale(0.98);
+}
+
+/* BOTÓN PELIGRO */
+
+.btn-salir{
+  margin-left:auto;
+  background:#c62828;
+}
+
+.btn-salir:hover{
+
+  background:#8e0000;
+}
+
+select{
+
+    padding:10px;
+}
+
+table{
+
+    width:100%;
+
+    border-collapse:collapse;
+
+    background:white;
+}
+
+th{
+
+    background:#1565c0;
+
+    color:white;
+
+    padding:10px;
+
+    font-size:14px;
+}
+
+td{
+
+    border:1px solid #ccc;
+
+    text-align:center;
+
+    padding:8px;
+
+    font-size:13px;
+}
+
+.nombre{
+
+    text-align:left;
+}
+
+.presente{
+
+    background:#c8e6c9;
+    color:#1b5e20;
+    font-weight:bold;
+}
+
+.falta{
+
+    background:#ffcdd2;
+    color:#b71c1c;
+    font-weight:bold;
+}
+
+.asistencias{
+
+    background:#bbdefb;
+    font-weight:bold;
+}
+
+.faltas{
+
+    background:#ffcdd2;
+    font-weight:bold;
+}
+
+.porcentaje{
+
+    background:#fff9c4;
+    font-weight:bold;
+}
+
+@media print{
+
+    .no-print{
+
+        display:none;
+    }
+}
+
+/* =====================================
+RESPONSIVE
+===================================== */
+
+.tabla-container{
+
+    margin-top:0 !important;
+    margin-bottom:22px !important;
+    width:100%;
+    overflow-x:auto;
+}
+
+table{
+
+    min-width:900px;
+}
+
+input{
+
+    padding:10px;
+
+    border-radius:5px;
+
+    border:1px solid #ccc;
+
+    min-width:200px;
+}
+
+@media screen and (max-width:768px){
+
+    body{
+
+        padding:10px;
+    }
+
+    .encabezado{
+
+        flex-direction:column;
+        text-align:center;
+    }
+
+    .controles{
+
+        flex-direction:column;
+    }
+
+    button,
+    select,
+    input{
+
+        width:100%;
+    }
+
+    .logo{
+
+        width:70px;
+        height:70px;
+    }
+
+    .titulo h1{
+
+        font-size:20px;
+    }
+
+    th,
+    td{
+
+        font-size:12px;
+        padding:5px;
+    }
+}
+
+
+/* =====================================
+DASHBOARD
+===================================== */
+
+.dashboard{
+
+  display:flex;
+
+  flex-wrap:wrap;
+
+  gap:15px;
+
+  justify-content:center;
+
+  margin-bottom:20px;
+}
+
+.card{
+
+  background:white;
+
+  border-radius:12px;
+
+  padding:15px;
+
+  min-width:180px;
+
+  flex:1;
+
+  text-align:center;
+
+  box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+.card h3{
+
+  margin:0 0 10px 0;
+
+  color:#1565c0;
+}
+
+.card p{
+
+  font-size:30px;
+
+  font-weight:bold;
+
+  color:#1565C0;
+
+  margin:0;
+}
+
+
+/* ===================================== */
+/* LOGIN */
+/* ===================================== */
+
+.login-container{
+
+  width:100%;
+  height:100vh;
+
+  display:flex;
+
+  justify-content:center;
+  align-items:center;
+
+  background:#f5f7fb;
+}
+
+.login-box{
+
+  width:350px;
+
+  background:white;
+
+  padding:40px;
+
+  border-radius:15px;
+
+  box-shadow:0 0 20px rgba(0,0,0,0.1);
+
+  text-align:center;
+}
+
+.logo-login{
+
+  width:100px;
+
+  margin-bottom:20px;
+}
+
+.login-box input{
+
+  width:100%;
+
+  padding:12px;
+
+  margin-top:10px;
+
+  border:1px solid #ccc;
+
+  border-radius:10px;
+
+  font-size:16px;
+}
+
+.login-box button{
+
+  width:100%;
+
+  padding:12px;
+
+  margin-top:20px;
+
+  border:none;
+
+  border-radius:10px;
+
+  background:#1e88e5;
+
+  color:white;
+
+  font-size:16px;
+
+  cursor:pointer;
+}
+
+.login-box button:hover{
+
+  background:#1565c0;
+}
+
+#mensajeLogin{
+
+  color:red;
+
+  margin-top:15px;
+}
+
+.btn-salir{
+  background:#c62828;
+}
+
+.btn-salir:hover{
+  background:#8e0000;
+}
+
+.form-admin{
+  background:white;
+  padding:20px;
+  margin-bottom:20px;
+  border-radius:12px;
+  box-shadow:0 3px 10px rgba(0,0,0,0.12);
+}
+
+.form-admin input{
+  display:block;
+  width:100%;
+  max-width:400px;
+  margin:10px 0;
+  padding:10px;
+  border:1px solid #ccc;
+  border-radius:8px;
+}
+
+.form-admin button{
+  margin-right:10px;
+  margin-top:10px;
+}
+
+
+.resultado-alumno{
+  display:grid;
+  grid-template-columns: repeat(auto-fit,minmax(160px,1fr));
+  gap:10px;
+  margin-top:15px;
+  padding:15px;
+  border:1px solid #ddd;
+  border-radius:10px;
+  background:#fafafa;
+}
+
+.resultado-alumno input,
+.resultado-alumno select{
+  padding:10px;
+  border:1px solid #ccc;
+  border-radius:8px;
+}
+
+.graficas{
+
+  margin-top:30px;
+
+  display:grid;
+
+  grid-template-columns:
+    repeat(auto-fit,minmax(280px,420px));
+
+  justify-content:center;
+
+  gap:25px;
+}
+
+.graficas canvas{
+
+  width:100% !important;
+
+  max-width:420px;
+
+  height:320px !important;
+
+  background:white;
+
+  padding:15px;
+
+  border-radius:15px;
+
+  box-shadow:
+    0 3px 10px rgba(0,0,0,0.1);
+}
+
+#panelHistorialPDF{
+
+  margin-top:25px;
+}
+
+#resultadoHistorialPDF{
+
+  margin-top:20px;
+
+  overflow-x:auto;
+}
+
+#resultadoHistorialPDF a{
+
+  background:#1565c0;
+
+  color:white;
+
+  padding:8px 12px;
+
+  border-radius:8px;
+
+  text-decoration:none;
+
+  font-weight:bold;
+}
+
+
+.no-pdf{
+  display:block;
+}
+
+/* ===================================== */
+/* PDF PROFESIONAL */
+/* ===================================== */
+
+#reporte.modo-pdf{
+
+  background:white;
+
+  width:100%;
+
+  padding:10px;
+
+  box-sizing:border-box;
+}
+
+/* TABLA PDF */
+
+#reporte.modo-pdf table{
+  width:100%;
+  border-collapse:collapse;
+  table-layout:fixed;
+  min-width:0 !important;
+}
+
+/* FILAS */
+
+#reporte.modo-pdf tr{
+
+  page-break-inside:avoid;
+}
+
+/* CELDAS */
+
+#reporte.modo-pdf th,
+#reporte.modo-pdf td{
+
+  font-size:9px;
+
+  padding:4px;
+
+  text-align:center;
+
+  word-break:normal;
+
+  overflow-wrap:break-word;
+
+  white-space:normal;
+}
+
+/* ENCABEZADOS */
+
+#reporte.modo-pdf th{
+
+  background:#1565c0 !important;
+
+  color:white !important;
+}
+
+/* COLUMNA # */
+
+#reporte.modo-pdf th:nth-child(1),
+#reporte.modo-pdf td:nth-child(1){
+
+  width:3px;
+
+  max-width:3px;
+}
+
+/* COLUMNA NOMBRE */
+
+#reporte.modo-pdf th:nth-child(2),
+#reporte.modo-pdf td:nth-child(2){
+
+  width:40px;
+
+  max-width:40px;
+
+  text-align:left;
+
+  white-space:nowrap;
+
+  overflow:hidden;
+
+  text-overflow:ellipsis;
+
+  font-size:9px;
+}
+
+/* COLUMNAS DÍAS */
+
+#reporte.modo-pdf th:nth-child(n+3):nth-child(-n+33),
+#reporte.modo-pdf td:nth-child(n+3):nth-child(-n+33){
+
+  width:5px;
+
+  max-width:5px;
+
+  padding:2px;
+
+  font-size:8px;
+}
+
+/* ASISTENCIAS */
+
+#reporte.modo-pdf th:nth-last-child(3),
+#reporte.modo-pdf td:nth-last-child(3){
+
+  width:10px;
+}
+
+/* FALTAS */
+
+#reporte.modo-pdf th:nth-last-child(2),
+#reporte.modo-pdf td:nth-last-child(2){
+
+  width:10px;
+}
+
+/* PORCENTAJE */
+
+#reporte.modo-pdf th:last-child,
+#reporte.modo-pdf td:last-child{
+
+  width:10px;
+
+  min-width:10px;
+}
+
+/* ENCABEZADO SUPERIOR */
+
+#reporte.modo-pdf .encabezado{
+
+  margin-bottom:10px;
+
+  padding:10px;
+}
+
+/* TÍTULOS */
+
+#reporte.modo-pdf .titulo h1{
+
+  font-size:18px;
+}
+
+#reporte.modo-pdf .titulo h2{
+
+  font-size:15px;
+}
+
+#reporte.modo-pdf .titulo p{
+
+  font-size:12px;
+}
+
+/* LOGO */
+
+#reporte.modo-pdf .logo{
+
+  width:60px;
+
+  height:60px;
+}
+
+
+/* =====================================
+CORRECCIÓN DASHBOARD PRINCIPAL
+===================================== */
+
+#dashboardPrincipal{
+
+  display:flex !important;
+
+  flex-direction:row !important;
+
+  flex-wrap:nowrap !important;
+
+  gap:15px !important;
+
+  justify-content:space-between !important;
+
+  align-items:stretch !important;
+
+  width:100% !important;
+}
+
+#dashboardPrincipal .card{
+
+  flex:1 1 0 !important;
+
+  min-width:0 !important;
+
+  max-width:none !important;
+}
+
+.solo-pdf{
+  display:none;
+}
+
+#reporte.modo-pdf .solo-pdf{
+  display:flex;
+}
+
+.bloque-validacion-pdf{
+
+  margin:10px 0 15px 0;
+
+  padding:10px;
+
+  border:1px solid #ccc;
+
+  border-radius:8px;
+
+  background:#fafafa;
+
+  justify-content:space-between;
+
+  align-items:center;
+
+  gap:15px;
+}
+
+.bloque-validacion-pdf p{
+
+  margin:5px 0 0 0;
+
+  font-size:10px;
+}
+
+.folio-pdf{
+
+  font-size:11px;
+
+  font-weight:bold;
+
+  color:#333;
+}
+
+#qrValidacionPDF{
+
+  width:90px;
+
+  height:90px;
+}
+
+/* OCULTAR DASHBOARD PRINCIPAL SOLO EN PDF */
+#reporte.modo-pdf #dashboardPrincipal{
+  display:none !important;
+}
+
+
+/* =====================================
+HISTORIAL PDF PROFESIONAL
+===================================== */
+
+.filtros-historial-pdf{
+
+  display:flex;
+
+  flex-wrap:wrap;
+
+  gap:12px;
+
+  align-items:center;
+
+  margin-top:15px;
+
+  margin-bottom:20px;
+
+  padding:15px;
+
+  background:#f8fbff;
+
+  border:1px solid #dbe8f5;
+
+  border-radius:12px;
+}
+
+.filtros-historial-pdf select,
+.filtros-historial-pdf input{
+
+  min-width:180px;
+
+  background:white;
+
+  border:1px solid #cfd8dc;
+
+  border-radius:10px;
+
+  padding:10px;
+
+  font-size:14px;
+
+  transition:0.2s;
+}
+
+.filtros-historial-pdf select:focus,
+.filtros-historial-pdf input:focus{
+
+  outline:none;
+
+  border-color:#1565c0;
+
+  box-shadow:0 0 0 3px rgba(21,101,192,0.15);
+}
+
+.filtros-historial-pdf button{
+
+  border-radius:10px;
+
+  padding:10px 18px;
+
+  font-size:14px;
+}
+
+/* TABLA HISTORIAL */
+
+.tabla-historial-pdf{
+
+  width:100%;
+
+  min-width:1000px;
+
+  border-collapse:collapse;
+
+  overflow:hidden;
+
+  border-radius:14px;
+
+  background:white;
+
+  box-shadow:0 4px 14px rgba(0,0,0,0.08);
+}
+
+.tabla-historial-pdf th{
+
+  background:#1565c0;
+
+  color:white;
+
+  padding:14px;
+
+  font-size:14px;
+
+  text-transform:uppercase;
+
+  letter-spacing:0.5px;
+}
+
+.tabla-historial-pdf td{
+
+  padding:12px;
+
+  border-bottom:1px solid #eceff1;
+
+  font-size:14px;
+
+  vertical-align:middle;
+}
+
+.tabla-historial-pdf tr{
+
+  transition:0.2s;
+}
+
+.tabla-historial-pdf tr:hover{
+
+  background:#f5f9ff;
+}
+
+/* BOTÓN PDF */
+
+.btn-abrir-pdf{
+
+  display:inline-block;
+
+  background:#1565c0;
+
+  color:white !important;
+
+  padding:8px 14px;
+
+  border-radius:10px;
+
+  text-decoration:none;
+
+  font-weight:bold;
+
+  transition:0.2s;
+}
+
+.btn-abrir-pdf:hover{
+
+  background:#0d47a1;
+
+  transform:scale(1.03);
+}
+
+/* MENSAJE VACÍO */
+
+.mensaje-vacio{
+
+  background:white;
+
+  padding:20px;
+
+  border-radius:12px;
+
+  text-align:center;
+
+  color:#666;
+
+  box-shadow:0 2px 10px rgba(0,0,0,0.08);
+}
+
+/* RESPONSIVE */
+
+@media screen and (max-width:768px){
+
+  .filtros-historial-pdf{
+
+    flex-direction:column;
+
+    align-items:stretch;
+  }
+
+  .filtros-historial-pdf select,
+  .filtros-historial-pdf input,
+  .filtros-historial-pdf button{
+
+    width:100%;
+  }
+
+  .tabla-historial-pdf{
+
+    min-width:850px;
+  }
+}
+
+/* =====================================
+RESUMEN HISTORIAL PDF
+===================================== */
+
+.dashboard-resumen-pdf{
+
+  display:grid;
+
+  grid-template-columns:
+    repeat(auto-fit,minmax(220px,1fr));
+
+  gap:15px;
+
+  margin-bottom:20px;
+}
+
+.card-resumen-pdf{
+
+  background:white;
+
+  border-radius:14px;
+
+  padding:18px;
+
+  box-shadow:0 3px 10px rgba(0,0,0,0.08);
+
+  border-left:5px solid #1565c0;
+}
+
+.card-resumen-pdf h3{
+
+  margin:0 0 10px 0;
+
+  color:#1565c0;
+
+  font-size:15px;
+}
+
+.card-resumen-pdf p{
+
+  margin:0;
+
+  font-size:22px;
+
+  font-weight:bold;
+
+  color:#263238;
+}
+
+.ultimo-pdf{
+
+  font-size:14px !important;
+
+  word-break:break-word;
+}
+
+/* =====================================
+MENSAJES DEL SISTEMA
+===================================== */
+
+/* =====================================
+TOAST / POPUP DEL SISTEMA
+===================================== */
+
+.mensaje-sistema{
+
+  display:none;
+
+  position:fixed;
+
+  top:25px;
+
+  right:25px;
+
+  z-index:9999;
+
+  min-width:280px;
+
+  max-width:380px;
+
+  padding:16px 20px;
+
+  border-radius:14px;
+
+  font-weight:bold;
+
+  text-align:left;
+
+  box-shadow:0 8px 25px rgba(0,0,0,0.18);
+
+  animation:toastEntrada 0.3s ease;
+}
+
+@keyframes toastEntrada{
+
+  from{
+    opacity:0;
+    transform:translateY(-15px);
+  }
+
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+}
+
+.mensaje-info{
+
+  background:#e3f2fd;
+
+  color:#0d47a1;
+
+  border-left:6px solid #1565c0;
+}
+
+.mensaje-exito{
+
+  background:#e8f5e9;
+
+  color:#1b5e20;
+
+  border-left:6px solid #2e7d32;
+}
+
+.mensaje-error{
+
+  background:#ffebee;
+
+  color:#b71c1c;
+
+  border-left:6px solid #c62828;
+}
+
+@media screen and (max-width:768px){
+
+  .mensaje-sistema{
+
+    top:15px;
+
+    right:15px;
+
+    left:15px;
+
+    max-width:none;
+
+    min-width:auto;
+  }
+}
+
+/* =====================================
+LOADER GLOBAL
+===================================== */
+
+.loader-global{
+
+  position:fixed;
+
+  inset:0;
+
+  background:rgba(255,255,255,0.75);
+
+  backdrop-filter:blur(4px);
+
+  z-index:10000;
+
+  display:none;
+
+  justify-content:center;
+
+  align-items:center;
+}
+
+.loader-contenido{
+
+  background:white;
+
+  padding:30px;
+
+  border-radius:18px;
+
+  box-shadow:0 8px 25px rgba(0,0,0,0.15);
+
+  text-align:center;
+
+  min-width:260px;
+}
+
+.spinner-loader{
+
+  width:60px;
+
+  height:60px;
+
+  border:6px solid #e3f2fd;
+
+  border-top:6px solid #1565c0;
+
+  border-radius:50%;
+
+  margin:auto;
+
+  animation:girarLoader 1s linear infinite;
+}
+
+#textoLoader{
+
+  margin-top:18px;
+
+  font-weight:bold;
+
+  color:#1565c0;
+
+  font-size:16px;
+}
+
+@keyframes girarLoader{
+
+  from{
+    transform:rotate(0deg);
+  }
+
+  to{
+    transform:rotate(360deg);
+  }
+}
+
+/* =====================================
+MODAL GLOBAL
+===================================== */
+
+.modal-global{
+
+  position:fixed;
+
+  inset:0;
+
+  background:rgba(0,0,0,0.45);
+
+  z-index:10001;
+
+  display:none;
+
+  justify-content:center;
+
+  align-items:center;
+
+  padding:20px;
+}
+
+.modal-contenido{
+
+  background:white;
+
+  width:100%;
+
+  max-width:420px;
+
+  padding:28px;
+
+  border-radius:18px;
+
+  box-shadow:0 10px 30px rgba(0,0,0,0.25);
+
+  text-align:center;
+
+  animation:modalEntrada 0.25s ease;
+}
+
+@keyframes modalEntrada{
+
+  from{
+    opacity:0;
+    transform:scale(0.92);
+  }
+
+  to{
+    opacity:1;
+    transform:scale(1);
+  }
+}
+
+.modal-contenido h3{
+
+  margin:0 0 12px 0;
+
+  color:#1565c0;
+
+  font-size:22px;
+}
+
+.modal-contenido p{
+
+  margin:0;
+
+  color:#455a64;
+
+  font-size:15px;
+
+  line-height:1.5;
+}
+
+.modal-botones{
+
+  display:flex;
+
+  gap:12px;
+
+  justify-content:center;
+
+  margin-top:24px;
+}
+
+.btn-modal-cancelar{
+
+  background:#78909c;
+}
+
+.btn-modal-cancelar:hover{
+
+  background:#546e7a;
+}
+
+.btn-modal-aceptar{
+
+  background:#1565c0;
+}
+
+.btn-modal-aceptar:hover{
+
+  background:#0d47a1;
+}
+
+@media screen and (max-width:768px){
+
+  .modal-botones{
+
+    flex-direction:column;
+  }
+
+  .modal-botones button{
+
+    width:100%;
+  }
+}
+
+/* =====================================
+ANIMACIONES SUAVES
+===================================== */
+
+.card,
+.form-admin,
+.tabla-historial-pdf,
+.dashboard-resumen-pdf,
+.graficas canvas{
+
+  animation:entradaSuave 0.35s ease;
+}
+
+@keyframes entradaSuave{
+
+  from{
+    opacity:0;
+    transform:translateY(10px);
+  }
+
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+}
+
+/* =====================================
+REPORTE INDIVIDUAL ALUMNO
+===================================== */
+
+.buscador-individual{
+
+  display:flex;
+
+  flex-wrap:wrap;
+
+  gap:12px;
+
+  align-items:center;
+
+  margin-top:15px;
+}
+
+.buscador-individual input{
+
+  flex:1;
+
+  min-width:260px;
+}
+
+.resultados-individuales{
+
+  display:grid;
+
+  grid-template-columns:
+    repeat(auto-fit,minmax(240px,1fr));
+
+  gap:15px;
+
+  margin-top:20px;
+}
+
+.card-individual{
+
+  background:#f8fbff;
+
+  border:1px solid #dbe8f5;
+
+  border-left:5px solid #1565c0;
+
+  border-radius:14px;
+
+  padding:18px;
+
+  box-shadow:0 3px 10px rgba(0,0,0,0.08);
+}
+
+.card-individual h3{
+
+  margin:0 0 12px 0;
+
+  color:#1565c0;
+}
+
+.card-individual p{
+
+  margin:6px 0;
+
+  color:#37474f;
+}
+
+.card-individual button{
+
+  margin-top:12px;
+}
+
+.btn-pdf-individual{
+  margin-top:15px;
+  padding:10px 18px;
+  border:none;
+  border-radius:10px;
+  background:#1565c0;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.btn-pdf-individual:hover{
+  background:#1d4ed8;
+}
+
+#contenidoIndividualPDF .resumen-individual,
+#contenidoIndividualPDF .dashboard-individual,
+#contenidoIndividualPDF .tarjetas-individuales,
+#contenidoIndividualPDF .card,
+#contenidoIndividualPDF .tarjeta,
+#contenidoIndividualPDF .dato,
+#contenidoIndividualPDF .estadistica{
+  display:none !important;
+}
+
+#pdfIndividual table{
+  table-layout:auto !important;
+  width:100% !important;
+}
+
+#pdfIndividual th,
+#pdfIndividual td{
+  font-size:9px;
+  padding:4px;
+  white-space:normal;
+  word-break:normal;
+}
+
+.panel-pdf-institucional{
+  margin-top:20px;
+  padding:18px;
+  border:1px solid #dbeafe;
+  border-radius:14px;
+  background:#eff6ff;
+  text-align:center;
+}
+
+.panel-pdf-institucional h3{
+  color:#1565c0;
+  margin-top:0;
+}
+
+.botones-buscador{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+
+.btn-cancelar{
+  background:#6b7280;
+}
+
+#resultadoPDFInstitucional{
+  margin-top:15px;
+  text-align:left;
+}
+
+.oculto{
+  display:none !important;
+}
+
+.buscador-multiple{
+  min-width:260px;
+  max-width:360px;
+}
+
+.espaciador-controles{
+  flex:1;
+}
+
+.controles{
+  display:flex !important;
+  align-items:center !important;
+  gap:10px !important;
+  flex-wrap:nowrap !important;
+}
+
+.espaciador-controles{
+  flex:1 !important;
+}
+
+.btn-salir{
+  margin-left:0 !important;
+  white-space:nowrap;
+}
+
+.barra-busqueda-tabla{
+  margin-bottom:20px;
+}
+
+.buscador-multiple{
+  width:100%;
+  max-width:420px;
+}
+
+.buscador-multiple{
+
+  height:42px;
+  box-sizing:border-box;
+
+}
+
+.controles{
+  align-items:center;
+}
+
+.controles input.buscador-multiple{
+  height:40px !important;
+  min-height:30px !important;
+  padding:0 12px !important;
+  margin:0 !important;
+  align-self:center !important;
+}
+
+.controles button,
+.controles select{
+  height:40px !important;
+  margin:0 !important;
+  align-self:center !important;
+}
+
+.tarjeta-lista{
+
+  background:white;
+  padding:20px;
+  border-radius:16px;
+  box-shadow:0 4px 15px rgba(0,0,0,0.10);
+  margin-bottom:0;
+}
+
+.tarjeta-lista .controles{
+
+  margin-bottom:18px;
+}
+
+.tarjeta-lista .dashboard{
+
+  margin-bottom:0;
+}
+
+.tarjeta-lista .card{
+
+  box-shadow:none;
+  border:1px solid #e5e7eb;
+  background:#f9fbff;
+}
+
+.tarjeta-admin{
+
+  background:white !important;
+  padding:20px !important;
+  border-radius:16px !important;
+  box-shadow:0 4px 15px rgba(0,0,0,0.10) !important;
+  margin-bottom:22px !important;
+}
+
+.panel-admin{
+
+  background:white !important;
+}
