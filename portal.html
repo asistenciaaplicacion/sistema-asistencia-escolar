@@ -290,6 +290,77 @@
       </div>
     </div>
 
+<div class="card">
+  <h2>Consultar historial por UID</h2>
+
+  <p>
+    Escribe el UID del alumno para consultar su historial de asistencia,
+    faltas y promedio general.
+  </p>
+
+  <div class="buscador">
+    <input
+      type="text"
+      id="uidAlumno"
+      placeholder="Ejemplo: A1B2C3D4">
+
+    <button onclick="consultarUID()">
+      Consultar UID
+    </button>
+  </div>
+
+  <div id="mensajeUID" class="mensaje"></div>
+
+  <div id="resultadoUID" class="resultado">
+
+    <div class="validacion">
+      📘 Historial del alumno
+    </div>
+
+    <div class="datos">
+
+      <div class="dato">
+        <strong>UID</strong>
+        <span id="uidDato"></span>
+      </div>
+
+      <div class="dato">
+        <strong>Alumno</strong>
+        <span id="uidAlumnoDato"></span>
+      </div>
+
+      <div class="dato">
+        <strong>Grupo</strong>
+        <span id="uidGrupoDato"></span>
+      </div>
+
+      <div class="dato">
+        <strong>Asistencias</strong>
+        <span id="uidAsistenciasDato"></span>
+      </div>
+
+      <div class="dato">
+        <strong>Faltas</strong>
+        <span id="uidFaltasDato"></span>
+      </div>
+
+      <div class="dato">
+        <strong>Promedio</strong>
+        <span id="uidPromedioDato"></span>
+      </div>
+
+    </div>
+
+    <h3 style="margin-top:24px; color:#1565c0;">
+      Registros de asistencia
+    </h3>
+
+    <div id="tablaHistorialUID"></div>
+
+  </div>
+</div>
+
+    
     <div class="footer">
       Sistema de Asistencia Escolar · Validación pública de documentos
     </div>
@@ -462,6 +533,203 @@
           consultarFolio();
         }
       });
+
+function mostrarMensajeUID(texto, tipo){
+
+  const mensaje =
+    document.getElementById('mensajeUID');
+
+  mensaje.textContent = texto;
+  mensaje.className = 'mensaje ' + tipo;
+  mensaje.style.display = 'block';
+}
+
+function ocultarMensajeUID(){
+
+  const mensaje =
+    document.getElementById('mensajeUID');
+
+  mensaje.style.display = 'none';
+  mensaje.textContent = '';
+}
+
+function formatearHora(valor){
+
+  if(!valor){
+    return 'S/I';
+  }
+
+  const horaObj =
+    new Date(valor);
+
+  if(isNaN(horaObj.getTime())){
+    return 'S/I';
+  }
+
+  return horaObj.toLocaleTimeString(
+    'es-MX',
+    {
+      hour:'2-digit',
+      minute:'2-digit'
+    }
+  );
+}
+
+async function consultarUID(){
+
+  const uid =
+    document.getElementById('uidAlumno')
+      .value
+      .trim()
+      .toUpperCase();
+
+  const resultado =
+    document.getElementById('resultadoUID');
+
+  resultado.style.display = 'none';
+  ocultarMensajeUID();
+
+  if(!uid){
+
+    mostrarMensajeUID(
+      'Escribe el UID del alumno.',
+      'info'
+    );
+
+    return;
+  }
+
+  mostrarMensajeUID(
+    'Consultando historial...',
+    'info'
+  );
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=historialIndividual' +
+        '&uid=' +
+        encodeURIComponent(uid)
+      );
+
+    const datos =
+      await respuesta.json();
+
+    if(!datos || !datos.nombre){
+
+      mostrarMensajeUID(
+        'No se encontró un alumno con ese UID.',
+        'error'
+      );
+
+      return;
+    }
+
+    document.getElementById('uidDato').textContent =
+      datos.uid || uid;
+
+    document.getElementById('uidAlumnoDato').textContent =
+      datos.nombre || 'Sin nombre';
+
+    document.getElementById('uidGrupoDato').textContent =
+      (datos.grado || '') + ' ' + (datos.grupo || '');
+
+    document.getElementById('uidAsistenciasDato').textContent =
+      datos.asistencias || 0;
+
+    document.getElementById('uidFaltasDato').textContent =
+      datos.faltas || 0;
+
+    document.getElementById('uidPromedioDato').textContent =
+      (datos.porcentaje || 0) + '%';
+
+    pintarTablaHistorialUID(datos.historial || []);
+
+    ocultarMensajeUID();
+
+    resultado.style.display = 'block';
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeUID(
+      'Error de conexión al consultar el UID.',
+      'error'
+    );
+  }
+}
+
+function pintarTablaHistorialUID(historial){
+
+  const contenedor =
+    document.getElementById('tablaHistorialUID');
+
+  if(!historial || historial.length === 0){
+
+    contenedor.innerHTML = `
+      <p class="mensaje-vacio">
+        Este alumno no tiene registros de asistencia.
+      </p>
+    `;
+
+    return;
+  }
+
+  let html = `
+    <table style="
+      width:100%;
+      border-collapse:collapse;
+      margin-top:12px;
+      background:white;
+    ">
+      <tr>
+        <th style="padding:10px; background:#1565c0; color:white;">Fecha</th>
+        <th style="padding:10px; background:#1565c0; color:white;">Hora</th>
+        <th style="padding:10px; background:#1565c0; color:white;">Estado</th>
+        <th style="padding:10px; background:#1565c0; color:white;">Puntualidad</th>
+      </tr>
+  `;
+
+  historial.forEach(registro => {
+
+    html += `
+      <tr>
+        <td style="padding:9px; border:1px solid #cbd5e1; text-align:center;">
+          ${formatearFecha(registro.fecha)}
+        </td>
+
+        <td style="padding:9px; border:1px solid #cbd5e1; text-align:center;">
+          ${formatearHora(registro.hora)}
+        </td>
+
+        <td style="padding:9px; border:1px solid #cbd5e1; text-align:center;">
+          ${registro.estado || 'Sin dato'}
+        </td>
+
+        <td style="padding:9px; border:1px solid #cbd5e1; text-align:center;">
+          ${registro.puntualidad || 'Sin dato'}
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `</table>`;
+
+  contenedor.innerHTML = html;
+}
+
+document
+  .getElementById('uidAlumno')
+  .addEventListener('keydown', function(event){
+
+    if(event.key === 'Enter'){
+      consultarUID();
+    }
+  });
+    
   </script>
 
 </body>
