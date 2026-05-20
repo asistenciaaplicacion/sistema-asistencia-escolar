@@ -2958,3 +2958,126 @@ new QRCode(
 }, 500);
 
 }
+
+async function registrarReporteAlumno(){
+
+  const usuarioActivo =
+    JSON.parse(
+      localStorage.getItem('usuarioActivo')
+    );
+
+  if(!usuarioActivo){
+
+    mostrarMensajeSistema(
+      'No hay sesión activa.',
+      'error'
+    );
+
+    return;
+  }
+
+  const uid =
+    document.getElementById('reporteUID').value.trim();
+
+  const alumno =
+    document.getElementById('reporteAlumno').value.trim();
+
+  const grado =
+    document.getElementById('reporteGrado').value.trim();
+
+  const grupo =
+    document.getElementById('reporteGrupo').value.trim();
+
+  const tipoReporte =
+    document.getElementById('reporteTipo').value.trim();
+
+  const descripcion =
+    document.getElementById('reporteDescripcion').value.trim();
+
+  const accionTomada =
+    document.getElementById('reporteAccion').value.trim();
+
+  if(
+    !alumno ||
+    !grado ||
+    !grupo ||
+    !tipoReporte ||
+    !descripcion
+  ){
+
+    mostrarMensajeSistema(
+      'Completa alumno, grado, grupo, tipo y descripción.',
+      'info'
+    );
+
+    return;
+  }
+
+  mostrarLoader(
+    'Guardando reporte...'
+  );
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=registrarReporteAlumno' +
+        '&uid=' +
+        encodeURIComponent(uid) +
+        '&alumno=' +
+        encodeURIComponent(alumno) +
+        '&grado=' +
+        encodeURIComponent(grado) +
+        '&grupo=' +
+        encodeURIComponent(grupo) +
+        '&docente=' +
+        encodeURIComponent(usuarioActivo.nombre) +
+        '&tipoReporte=' +
+        encodeURIComponent(tipoReporte) +
+        '&descripcion=' +
+        encodeURIComponent(descripcion) +
+        '&accionTomada=' +
+        encodeURIComponent(accionTomada)
+      );
+
+    const datos =
+      await respuesta.json();
+
+    if(datos.success){
+
+      mostrarMensajeSistema(
+        'Reporte registrado correctamente.',
+        'exito'
+      );
+
+      document.getElementById('reporteUID').value = '';
+      document.getElementById('reporteAlumno').value = '';
+      document.getElementById('reporteGrado').value = '';
+      document.getElementById('reporteGrupo').value = '';
+      document.getElementById('reporteTipo').value = '';
+      document.getElementById('reporteDescripcion').value = '';
+      document.getElementById('reporteAccion').value = '';
+
+    }else{
+
+      mostrarMensajeSistema(
+        datos.mensaje || 'No se pudo registrar el reporte.',
+        'error'
+      );
+    }
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error de conexión al guardar reporte.',
+      'error'
+    );
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
