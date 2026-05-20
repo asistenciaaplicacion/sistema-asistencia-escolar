@@ -203,7 +203,56 @@
         width:100%;
       }
     }
+
+    .estadisticas-visuales{
+  margin-top:24px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));
+  gap:18px;
+}
+
+.card-grafica{
+  background:#f8fafc;
+  padding:18px;
+  border-radius:14px;
+  border:1px solid #e2e8f0;
+  text-align:center;
+}
+
+.card-grafica h3{
+  color:#1565c0;
+  margin-top:0;
+}
+
+.grafica-alumno{
+  height:240px;
+  position:relative;
+}
+
+.barra-progreso{
+  width:100%;
+  height:28px;
+  background:#e5e7eb;
+  border-radius:20px;
+  overflow:hidden;
+  margin-top:15px;
+}
+
+.barra-progreso-interna{
+  height:100%;
+  width:0%;
+  background:#2e7d32;
+  color:white;
+  font-weight:bold;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:width 0.5s ease;
+}
+    
   </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -351,6 +400,34 @@
 
     </div>
 
+<div class="estadisticas-visuales">
+
+  <div class="card-grafica">
+    <h3>Distribución de asistencia</h3>
+
+    <div class="grafica-alumno">
+      <canvas id="graficaAlumno"></canvas>
+    </div>
+  </div>
+
+  <div class="card-grafica">
+    <h3>Promedio de asistencia</h3>
+
+    <p style="font-size:42px; font-weight:bold; color:#1565c0; margin:15px 0;">
+      <span id="porcentajeVisualAlumno">0%</span>
+    </p>
+
+    <div class="barra-progreso">
+      <div
+        id="barraPromedioAlumno"
+        class="barra-progreso-interna">
+        0%
+      </div>
+    </div>
+  </div>
+
+</div>
+    
     <h3 style="margin-top:24px; color:#1565c0;">
       Registros de asistencia
     </h3>
@@ -647,6 +724,27 @@ async function consultarUID(){
 
     pintarTablaHistorialUID(datos.historial || []);
 
+
+
+    actualizarEstadisticasVisualesAlumno(
+  datos.asistencias || 0,
+  datos.faltas || 0,
+  datos.porcentaje || 0
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
     ocultarMensajeUID();
 
     resultado.style.display = 'block';
@@ -729,6 +827,65 @@ document
       consultarUID();
     }
   });
+
+let graficaAlumno = null;
+
+function actualizarEstadisticasVisualesAlumno(asistencias, faltas, porcentaje){
+
+  const porcentajeTexto =
+    porcentaje + '%';
+
+  document.getElementById('porcentajeVisualAlumno').textContent =
+    porcentajeTexto;
+
+  const barra =
+    document.getElementById('barraPromedioAlumno');
+
+  barra.style.width =
+    porcentaje + '%';
+
+  barra.textContent =
+    porcentajeTexto;
+
+  const canvas =
+    document.getElementById('graficaAlumno');
+
+  if(!canvas){
+    return;
+  }
+
+  if(graficaAlumno){
+    graficaAlumno.destroy();
+  }
+
+  graficaAlumno =
+    new Chart(canvas, {
+      type:'doughnut',
+      data:{
+        labels:['Asistencias','Faltas'],
+        datasets:[{
+          data:[
+            asistencias,
+            faltas
+          ],
+          backgroundColor:[
+            '#2e7d32',
+            '#c62828'
+          ],
+          borderWidth:2
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{
+          legend:{
+            position:'bottom'
+          }
+        }
+      }
+    });
+}
     
   </script>
 
