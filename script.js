@@ -2191,10 +2191,8 @@ function generarQRValidacion(folio){
   contenedorQR.innerHTML = '';
 
   const urlValidacion =
-    API +
-    '?accion=validarPDF' +
-    '&folio=' +
-    encodeURIComponent(folio);
+    'https://asistenciaaplicacion.github.io/sistema-asistencia-escolar/verificar.html?folio=' +
+  encodeURIComponent(folio);
 
   new QRCode(contenedorQR, {
     text:urlValidacion,
