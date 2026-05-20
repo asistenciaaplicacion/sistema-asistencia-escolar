@@ -321,6 +321,71 @@
 
       </div>
 
+
+      <div class="card no-pdf" id="panelReportesAlumnos">
+
+  <h2>Libro de reportes</h2>
+
+  <p>
+    Registra reportes escolares de conducta, incidencias u observaciones.
+  </p>
+
+  <div class="form-grid">
+
+    <input
+      type="text"
+      id="reporteUID"
+      placeholder="UID del alumno">
+
+    <input
+      type="text"
+      id="reporteAlumno"
+      placeholder="Nombre del alumno">
+
+    <select id="reporteGrado">
+      <option value="">Selecciona grado</option>
+      <option>Primero</option>
+      <option>Segundo</option>
+      <option>Tercero</option>
+    </select>
+
+    <select id="reporteGrupo">
+      <option value="">Selecciona grupo</option>
+      <option>A</option>
+      <option>B</option>
+      <option>C</option>
+    </select>
+
+    <select id="reporteTipo">
+      <option value="">Tipo de reporte</option>
+      <option>Conducta</option>
+      <option>Incumplimiento de tareas</option>
+      <option>Falta de respeto</option>
+      <option>Uso indebido de celular</option>
+      <option>Conflicto entre compañeros</option>
+      <option>Daño a mobiliario</option>
+      <option>Uniforme</option>
+      <option>Otro</option>
+    </select>
+
+  </div>
+
+  <textarea
+    id="reporteDescripcion"
+    placeholder="Descripción del reporte"
+    rows="4"></textarea>
+
+  <textarea
+    id="reporteAccion"
+    placeholder="Acción tomada"
+    rows="3"></textarea>
+
+  <button onclick="registrarReporteAlumno()">
+    Guardar reporte
+  </button>
+
+</div>
+
       <!-- PANEL EDITAR / ELIMINAR ALUMNO -->
 
       <div
