@@ -410,6 +410,37 @@
     </div>
   </div>
 
+
+<div class="card-grafica" id="bloqueUltimoPDF" style="margin-top:24px; display:none;">
+  <h3>Último reporte individual</h3>
+
+  <p>
+    <strong>Folio:</strong>
+    <span id="ultimoPDFFolio"></span>
+  </p>
+
+  <p>
+    <strong>Fecha:</strong>
+    <span id="ultimoPDFFecha"></span>
+  </p>
+
+  <p>
+    <strong>Archivo:</strong>
+    <span id="ultimoPDFArchivo"></span>
+  </p>
+
+  <a
+    id="btnUltimoPDF"
+    class="btn-pdf"
+    href="#"
+    target="_blank">
+    Abrir último PDF
+  </a>
+</div>
+
+
+
+  
   <div class="card-grafica">
     <h3>Promedio de asistencia</h3>
 
@@ -732,6 +763,8 @@ async function consultarUID(){
   datos.porcentaje || 0
 );
 
+cargarUltimoPDFIndividual(uid);
+
 
 
 
@@ -885,6 +918,55 @@ function actualizarEstadisticasVisualesAlumno(asistencias, faltas, porcentaje){
         }
       }
     });
+}
+
+async function cargarUltimoPDFIndividual(uid){
+
+  const bloque =
+    document.getElementById('bloqueUltimoPDF');
+
+  bloque.style.display = 'none';
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=ultimoPDFIndividual' +
+        '&uid=' +
+        encodeURIComponent(uid)
+      );
+
+    const datos =
+      await respuesta.json();
+
+    if(!datos.encontrado || !datos.pdf){
+      bloque.style.display = 'none';
+      return;
+    }
+
+    const pdf =
+      datos.pdf;
+
+    document.getElementById('ultimoPDFFolio').textContent =
+      pdf.folio || 'Sin folio';
+
+    document.getElementById('ultimoPDFFecha').textContent =
+      formatearFecha(pdf.fecha);
+
+    document.getElementById('ultimoPDFArchivo').textContent =
+      pdf.archivo || 'Sin archivo';
+
+    document.getElementById('btnUltimoPDF').href =
+      pdf.url || '#';
+
+    bloque.style.display = 'block';
+
+  }catch(error){
+
+    console.error(error);
+    bloque.style.display = 'none';
+  }
 }
     
   </script>
