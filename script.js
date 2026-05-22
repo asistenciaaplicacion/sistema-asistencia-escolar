@@ -3235,3 +3235,117 @@ function mostrarModuloAcademico(modulo){
     return;
   }
 }
+
+let alumnosReporteEncontrados = [];
+
+async function buscarAlumnoParaReporte(){
+
+  const input =
+    document.getElementById('buscadorAlumnoReporte');
+
+  const contenedor =
+    document.getElementById('resultadosAlumnoReporte');
+
+  if(!input || !contenedor){
+    return;
+  }
+
+  const busqueda =
+    input.value.trim();
+
+  contenedor.innerHTML = '';
+
+  if(busqueda.length < 2){
+    return;
+  }
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=buscarReporteIndividual' +
+        '&busqueda=' +
+        encodeURIComponent(busqueda)
+      );
+
+    const alumnos =
+      await respuesta.json();
+
+    alumnosReporteEncontrados =
+      Array.isArray(alumnos)
+      ? alumnos
+      : [];
+
+    if(alumnosReporteEncontrados.length === 0){
+
+      contenedor.innerHTML = `
+        <p class="mensaje-vacio">
+          No se encontraron alumnos.
+        </p>
+      `;
+
+      return;
+    }
+
+    let html = '';
+
+    alumnosReporteEncontrados.forEach((alumno,index) => {
+
+      html += `
+        <div
+          class="item-alumno-reporte"
+          onclick="seleccionarAlumnoReporte(${index})">
+
+          <strong>${alumno.nombre}</strong>
+
+          <small>
+            UID: ${alumno.uid} · Grupo: ${alumno.grupo}
+          </small>
+
+        </div>
+      `;
+    });
+
+    contenedor.innerHTML = html;
+
+  }catch(error){
+
+    console.error(error);
+
+    contenedor.innerHTML = `
+      <p class="mensaje-vacio">
+        Error buscando alumno.
+      </p>
+    `;
+  }
+}
+
+
+function seleccionarAlumnoReporte(index){
+
+  const alumno =
+    alumnosReporteEncontrados[index];
+
+  if(!alumno){
+    return;
+  }
+
+  document.getElementById('reporteUID').value =
+    alumno.uid || '';
+
+  document.getElementById('reporteAlumno').value =
+    alumno.nombre || '';
+
+  document.getElementById('reporteGrado').value =
+    alumno.grado || '';
+
+  document.getElementById('reporteGrupo').value =
+    alumno.grupoLetra || '';
+
+  document.getElementById('buscadorAlumnoReporte').value =
+    alumno.nombre || '';
+
+  document.getElementById('resultadosAlumnoReporte').innerHTML =
+    '';
+}
