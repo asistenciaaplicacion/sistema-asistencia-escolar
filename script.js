@@ -3081,3 +3081,145 @@ async function registrarReporteAlumno(){
     ocultarLoader();
   }
 }
+
+function mostrarModuloAcademico(modulo){
+
+  const contenedor =
+    document.getElementById('contenedorModuloAcademico');
+
+  if(!contenedor){
+    mostrarMensajeSistema(
+      'No se encontró el contenedor académico.',
+      'error'
+    );
+    return;
+  }
+
+  if(modulo === 'reportes'){
+
+    contenedor.innerHTML = `
+      <div class="modulo-academico">
+
+        <h3>Libro de reportes</h3>
+
+        <p>
+          Registra reportes escolares de conducta, incidencias u observaciones.
+        </p>
+
+        <div class="form-grid">
+
+          <input
+            type="text"
+            id="reporteUID"
+            placeholder="UID del alumno">
+
+          <input
+            type="text"
+            id="reporteAlumno"
+            placeholder="Nombre del alumno">
+
+          <select id="reporteGrado">
+            <option value="">Selecciona grado</option>
+            <option>Primero</option>
+            <option>Segundo</option>
+            <option>Tercero</option>
+          </select>
+
+          <select id="reporteGrupo">
+            <option value="">Selecciona grupo</option>
+            <option>A</option>
+            <option>B</option>
+            <option>C</option>
+          </select>
+
+          <select id="reporteTipo">
+            <option value="">Tipo de reporte</option>
+            <option>Conducta</option>
+            <option>Incumplimiento de tareas</option>
+            <option>Falta de respeto</option>
+            <option>Uso indebido de celular</option>
+            <option>Conflicto entre compañeros</option>
+            <option>Daño a mobiliario</option>
+            <option>Uniforme</option>
+            <option>Otro</option>
+          </select>
+
+        </div>
+
+        <textarea
+          id="reporteDescripcion"
+          placeholder="Descripción del reporte"
+          rows="4"></textarea>
+
+        <textarea
+          id="reporteAccion"
+          placeholder="Acción tomada"
+          rows="3"></textarea>
+
+        <button onclick="registrarReporteAlumno()">
+          Guardar reporte
+        </button>
+
+      </div>
+    `;
+
+    return;
+  }
+
+  if(modulo === 'bitacora'){
+
+    contenedor.innerHTML = `
+      <div class="modulo-academico">
+        <h3>Bitácora</h3>
+        <p class="mensaje-vacio">
+          Módulo pendiente. Aquí se registrarán observaciones generales,
+          seguimientos y acuerdos institucionales.
+        </p>
+      </div>
+    `;
+
+    return;
+  }
+
+  if(modulo === 'pases'){
+
+    contenedor.innerHTML = `
+      <div class="modulo-academico">
+        <h3>Pase de salida</h3>
+        <p class="mensaje-vacio">
+          Módulo pendiente. Solo Dirección y Administración podrán generar pases.
+        </p>
+      </div>
+    `;
+
+    return;
+  }
+
+  if(modulo === 'justificantes'){
+
+    contenedor.innerHTML = `
+      <div class="modulo-academico">
+        <h3>Justificantes</h3>
+        <p class="mensaje-vacio">
+          Módulo pendiente. Aquí se registrarán justificantes de inasistencia.
+        </p>
+      </div>
+    `;
+
+    return;
+  }
+
+  if(modulo === 'calificaciones'){
+
+    contenedor.innerHTML = `
+      <div class="modulo-academico">
+        <h3>Calificaciones</h3>
+        <p class="mensaje-vacio">
+          Módulo pendiente. Aquí se capturarán o importarán calificaciones.
+        </p>
+      </div>
+    `;
+
+    return;
+  }
+}
