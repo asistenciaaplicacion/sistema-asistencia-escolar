@@ -1642,3 +1642,32 @@ REPORTE INDIVIDUAL ALUMNO
   resize:vertical;
   margin-bottom:10px;
 }
+
+.resultados-alumno-reporte{
+  margin:10px 0 16px;
+  display:grid;
+  gap:8px;
+}
+
+.item-alumno-reporte{
+  background:white;
+  border:1px solid #cbd5e1;
+  border-radius:10px;
+  padding:10px;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+.item-alumno-reporte:hover{
+  background:#e3f2fd;
+}
+
+.item-alumno-reporte strong{
+  color:#1565c0;
+}
+
+.item-alumno-reporte small{
+  display:block;
+  color:#64748b;
+  margin-top:4px;
+}
