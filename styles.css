@@ -1590,3 +1590,55 @@ REPORTE INDIVIDUAL ALUMNO
   resize:vertical;
   font-family:Arial, sans-serif;
 }
+
+#panelAdministracionAcademica{
+  margin-top:24px;
+}
+
+.menu-academico{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin:18px 0;
+}
+
+.menu-academico button{
+  flex:1;
+  min-width:160px;
+}
+
+.contenedor-modulo-academico{
+  margin-top:18px;
+  padding:18px;
+  background:#f8fafc;
+  border:1px solid #e2e8f0;
+  border-radius:14px;
+}
+
+.modulo-academico h3{
+  margin-top:0;
+  color:#1565c0;
+}
+
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:12px;
+  margin-bottom:12px;
+}
+
+.contenedor-modulo-academico input,
+.contenedor-modulo-academico select,
+.contenedor-modulo-academico textarea{
+  width:100%;
+  padding:12px;
+  border:1px solid #cbd5e1;
+  border-radius:10px;
+  font-family:Arial, sans-serif;
+  font-size:14px;
+}
+
+.contenedor-modulo-academico textarea{
+  resize:vertical;
+  margin-bottom:10px;
+}
