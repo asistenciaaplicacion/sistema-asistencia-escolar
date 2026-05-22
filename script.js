@@ -3097,84 +3097,81 @@ function mostrarModuloAcademico(modulo){
 
   if(modulo === 'reportes'){
 
-    contenedor.innerHTML = `
-      <div class="modulo-academico">
+   contenedor.innerHTML = `
+  <div class="modulo-academico">
 
-        <h3>Libro de reportes</h3>
+    <h3>Libro de reportes</h3>
 
-        <p>
-          Registra reportes escolares de conducta, incidencias u observaciones.
-        </p>
+    <p>
+      Registra reportes escolares de conducta, incidencias u observaciones.
+    </p>
 
-        <div class="form-grid">
+    <input
+      type="text"
+      id="buscadorAlumnoReporte"
+      placeholder="Buscar alumno: García, Guadalupe, López..."
+      onkeyup="buscarAlumnoParaReporte()">
 
-         <input
-  type="text"
-  id="buscadorAlumnoReporte"
-  placeholder="Buscar alumno: García, Guadalupe, López..."
-  onkeyup="buscarAlumnoParaReporte()">
+    <div id="resultadosAlumnoReporte" class="resultados-alumno-reporte"></div>
 
-<div id="resultadosAlumnoReporte" class="resultados-alumno-reporte"></div>
+    <div class="form-grid">
 
-<div class="form-grid">
+      <input
+        type="text"
+        id="reporteUID"
+        placeholder="UID del alumno"
+        readonly>
 
-  <input
-    type="text"
-    id="reporteUID"
-    placeholder="UID del alumno"
-    readonly>
+      <input
+        type="text"
+        id="reporteAlumno"
+        placeholder="Nombre del alumno"
+        readonly>
 
-  <input
-    type="text"
-    id="reporteAlumno"
-    placeholder="Nombre del alumno"
-    readonly>
+      <select id="reporteGrado">
+        <option value="">Selecciona grado</option>
+        <option>Primero</option>
+        <option>Segundo</option>
+        <option>Tercero</option>
+      </select>
 
-          <select id="reporteGrado">
-            <option value="">Selecciona grado</option>
-            <option>Primero</option>
-            <option>Segundo</option>
-            <option>Tercero</option>
-          </select>
+      <select id="reporteGrupo">
+        <option value="">Selecciona grupo</option>
+        <option>A</option>
+        <option>B</option>
+        <option>C</option>
+      </select>
 
-          <select id="reporteGrupo">
-            <option value="">Selecciona grupo</option>
-            <option>A</option>
-            <option>B</option>
-            <option>C</option>
-          </select>
+      <select id="reporteTipo">
+        <option value="">Tipo de reporte</option>
+        <option>Conducta</option>
+        <option>Incumplimiento de tareas</option>
+        <option>Falta de respeto</option>
+        <option>Uso indebido de celular</option>
+        <option>Conflicto entre compañeros</option>
+        <option>Daño a mobiliario</option>
+        <option>Uniforme</option>
+        <option>Otro</option>
+      </select>
 
-          <select id="reporteTipo">
-            <option value="">Tipo de reporte</option>
-            <option>Conducta</option>
-            <option>Incumplimiento de tareas</option>
-            <option>Falta de respeto</option>
-            <option>Uso indebido de celular</option>
-            <option>Conflicto entre compañeros</option>
-            <option>Daño a mobiliario</option>
-            <option>Uniforme</option>
-            <option>Otro</option>
-          </select>
+    </div>
 
-        </div>
+    <textarea
+      id="reporteDescripcion"
+      placeholder="Descripción del reporte"
+      rows="4"></textarea>
 
-        <textarea
-          id="reporteDescripcion"
-          placeholder="Descripción del reporte"
-          rows="4"></textarea>
+    <textarea
+      id="reporteAccion"
+      placeholder="Acción tomada"
+      rows="3"></textarea>
 
-        <textarea
-          id="reporteAccion"
-          placeholder="Acción tomada"
-          rows="3"></textarea>
+    <button onclick="registrarReporteAlumno()">
+      Guardar reporte
+    </button>
 
-        <button onclick="registrarReporteAlumno()">
-          Guardar reporte
-        </button>
-
-      </div>
-    `;
-
+  </div>
+`;
     return;
   }
 
@@ -3348,4 +3345,87 @@ function seleccionarAlumnoReporte(index){
 
   document.getElementById('resultadosAlumnoReporte').innerHTML =
     '';
+}
+
+let alumnosReporteEncontrados = [];
+
+async function buscarAlumnoParaReporte(){
+
+  const input = document.getElementById('buscadorAlumnoReporte');
+  const contenedor = document.getElementById('resultadosAlumnoReporte');
+
+  if(!input || !contenedor) return;
+
+  const busqueda = input.value.trim();
+
+  contenedor.innerHTML = '';
+
+  if(busqueda.length < 2) return;
+
+  try{
+
+    const respuesta = await fetch(
+      API +
+      '?accion=buscarReporteIndividual' +
+      '&busqueda=' +
+      encodeURIComponent(busqueda)
+    );
+
+    const alumnos = await respuesta.json();
+
+    alumnosReporteEncontrados = Array.isArray(alumnos) ? alumnos : [];
+
+    if(alumnosReporteEncontrados.length === 0){
+      contenedor.innerHTML = `
+        <p class="mensaje-vacio">
+          No se encontraron alumnos.
+        </p>
+      `;
+      return;
+    }
+
+    let html = '';
+
+    alumnosReporteEncontrados.forEach((alumno,index) => {
+      html += `
+        <div
+          class="item-alumno-reporte"
+          onclick="seleccionarAlumnoReporte(${index})">
+
+          <strong>${alumno.nombre}</strong>
+
+          <small>
+            UID: ${alumno.uid} · Grupo: ${alumno.grupo}
+          </small>
+
+        </div>
+      `;
+    });
+
+    contenedor.innerHTML = html;
+
+  }catch(error){
+
+    console.error(error);
+
+    contenedor.innerHTML = `
+      <p class="mensaje-vacio">
+        Error buscando alumno.
+      </p>
+    `;
+  }
+}
+
+function seleccionarAlumnoReporte(index){
+
+  const alumno = alumnosReporteEncontrados[index];
+
+  if(!alumno) return;
+
+  document.getElementById('reporteUID').value = alumno.uid || '';
+  document.getElementById('reporteAlumno').value = alumno.nombre || '';
+  document.getElementById('reporteGrado').value = alumno.grado || '';
+  document.getElementById('reporteGrupo').value = alumno.grupoLetra || '';
+  document.getElementById('buscadorAlumnoReporte').value = alumno.nombre || '';
+  document.getElementById('resultadosAlumnoReporte').innerHTML = '';
 }
