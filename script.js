@@ -3108,15 +3108,27 @@ function mostrarModuloAcademico(modulo){
 
         <div class="form-grid">
 
-          <input
-            type="text"
-            id="reporteUID"
-            placeholder="UID del alumno">
+         <input
+  type="text"
+  id="buscadorAlumnoReporte"
+  placeholder="Buscar alumno: García, Guadalupe, López..."
+  onkeyup="buscarAlumnoParaReporte()">
 
-          <input
-            type="text"
-            id="reporteAlumno"
-            placeholder="Nombre del alumno">
+<div id="resultadosAlumnoReporte" class="resultados-alumno-reporte"></div>
+
+<div class="form-grid">
+
+  <input
+    type="text"
+    id="reporteUID"
+    placeholder="UID del alumno"
+    readonly>
+
+  <input
+    type="text"
+    id="reporteAlumno"
+    placeholder="Nombre del alumno"
+    readonly>
 
           <select id="reporteGrado">
             <option value="">Selecciona grado</option>
