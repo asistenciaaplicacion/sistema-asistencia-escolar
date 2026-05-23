@@ -2650,75 +2650,109 @@ function mostrarHistorialIndividual(datos){
 
 function generarPDFIndividual(){
 
-  const contenedor = document.getElementById('resultadoReporteIndividual');
+  const contenedor =
+    document.getElementById('resultadoReporteIndividual');
 
   if(!contenedor || contenedor.innerHTML.trim() === ''){
     alert('Primero busca un alumno para generar su PDF individual.');
     return;
   }
 
-const tablaOriginal = contenedor.querySelector('table');
+  const tablas =
+    contenedor.querySelectorAll('table');
 
-if(!tablaOriginal){
-  alert('No se encontró la tabla del historial individual.');
-  return;
-}
-
-const tablasOriginales =
-  contenedor.querySelectorAll('table');
-
-const tablaHistorial =
-  tablasOriginales[0].cloneNode(true);
-
-let htmlReportesPDF = `
-  <p style="font-size:12px;">
-    Sin reportes escolares registrados.
-  </p>
-`;
-
-if(tablasOriginales.length > 1){
-
-  const filasReportes =
-    tablasOriginales[1].querySelectorAll('tr');
-
-  htmlReportesPDF = '';
-
-  for(let i = 1; i < filasReportes.length; i++){
-
-    const celdas =
-      filasReportes[i].querySelectorAll('td');
-
-    htmlReportesPDF += `
-      <div style="
-        border:1px solid #cbd5e1;
-        border-radius:8px;
-        padding:8px;
-        margin-bottom:8px;
-        font-size:10px;
-      ">
-        <p><strong>Fecha:</strong> ${celdas[0]?.innerText || ''}</p>
-        <p><strong>Tipo:</strong> ${celdas[1]?.innerText || ''}</p>
-        <p><strong>Docente:</strong> ${celdas[2]?.innerText || ''}</p>
-        <p><strong>Descripción:</strong> ${celdas[3]?.innerText || ''}</p>
-        <p><strong>Acción tomada:</strong> ${celdas[4]?.innerText || ''}</p>
-      </div>
-    `;
+  if(tablas.length === 0){
+    alert('No se encontró la tabla del historial individual.');
+    return;
   }
-}
 
-tablaHistorial.querySelectorAll('*').forEach(el => {
-  el.removeAttribute('style');
-  el.removeAttribute('class');
-});
+  const tablaHistorial =
+    tablas[0].cloneNode(true);
+
+  tablaHistorial.querySelectorAll('*').forEach(el => {
+    el.removeAttribute('style');
+    el.removeAttribute('class');
+  });
 
   tablaHistorial.style.width = '100%';
   tablaHistorial.style.borderCollapse = 'collapse';
   tablaHistorial.style.tableLayout = 'fixed';
 
-  const fechaEmision = new Date().toLocaleDateString('es-MX');
-  const folio = 'IND-' + Date.now();
+  let htmlReportes = `
+    <p style="font-size:12px;">
+      Sin reportes escolares registrados.
+    </p>
+  `;
 
-  const reporte = document.createElement('div');
+  if(tablas.length > 1){
+
+    const filas =
+      tablas[1].querySelectorAll('tr');
+
+    htmlReportes = '';
+
+    for(let i = 1; i < filas.length; i++){
+
+      const celdas =
+        filas[i].querySelectorAll('td');
+
+      htmlReportes += `
+        <div class="tarjeta-reporte-pdf">
+
+          <p>
+            <strong>Fecha:</strong>
+            ${celdas[0]?.innerText || ''}
+          </p>
+
+          <p>
+            <strong>Tipo:</strong>
+            ${celdas[1]?.innerText || ''}
+          </p>
+
+          <p>
+            <strong>Docente:</strong>
+            ${celdas[2]?.innerText || ''}
+          </p>
+
+          <p>
+            <strong>Descripción:</strong>
+            ${celdas[3]?.innerText || ''}
+          </p>
+
+          <p>
+            <strong>Acción tomada:</strong>
+            ${celdas[4]?.innerText || ''}
+          </p>
+
+        </div>
+      `;
+    }
+  }
+
+  const texto =
+    contenedor.innerText;
+
+  const alumno =
+    texto.match(/Alumno\s+(.+)/)?.[1] ||
+    contenedor.querySelector('h3')?.innerText ||
+    'Alumno individual';
+
+  const grupo =
+    texto.match(/Grupo\s+(.+)/)?.[1] ||
+    'Grupo individual';
+
+  const fechaEmision =
+    new Date().toLocaleDateString('es-MX');
+
+  const folio =
+    'IND-' + Date.now();
+
+  const reporte =
+    document.createElement('div');
+
+  reporte.style.position = 'fixed';
+  reporte.style.left = '-9999px';
+  reporte.style.top = '0';
 
   reporte.innerHTML = `
     <div id="pdfIndividual">
@@ -2726,7 +2760,7 @@ tablaHistorial.querySelectorAll('*').forEach(el => {
       <style>
         #pdfIndividual{
           font-family: Arial, sans-serif;
-          padding: 12px;
+          padding: 14px;
           color: #1f2937;
           background: white;
         }
@@ -2736,26 +2770,25 @@ tablaHistorial.querySelectorAll('*').forEach(el => {
           align-items:center;
           border-bottom:4px solid #1565c0;
           padding-bottom:12px;
-          margin-bottom:22px;
+          margin-bottom:18px;
         }
 
         .logo-individual{
-          width:85px;
-          height:85px;
+          width:80px;
+          height:80px;
           object-fit:contain;
-          margin-right:20px;
+          margin-right:18px;
         }
 
         .titulo-individual h1{
           margin:0;
           color:#1565c0;
-          font-size:22px;
+          font-size:21px;
         }
 
         .titulo-individual h2{
           margin:4px 0;
-          font-size:17px;
-          color:#1f2937;
+          font-size:16px;
         }
 
         .titulo-individual p{
@@ -2764,60 +2797,51 @@ tablaHistorial.querySelectorAll('*').forEach(el => {
         }
 
         #pdfIndividual h3{
-          color:#1f2937;
-          font-size:18px;
-          margin:0 0 10px 0;
+          color:#1565c0;
+          font-size:16px;
+          margin:16px 0 8px;
         }
 
         #pdfIndividual table{
           width:100% !important;
           border-collapse:collapse !important;
           table-layout:fixed !important;
-          font-size:10px !important;
+          font-size:9px !important;
         }
 
         #pdfIndividual th{
           background:#1565c0 !important;
           color:white !important;
-          padding:6px 3px !important;
+          padding:5px 3px !important;
           border:1px solid #0d47a1 !important;
           text-align:center !important;
-          font-size:10px !important;
-          white-space:normal !important;
+          font-size:9px !important;
         }
 
         #pdfIndividual td{
-          padding:6px 3px !important;
+          padding:5px 3px !important;
           border:1px solid #cbd5e1 !important;
           text-align:center !important;
-          font-size:10px !important;
-          white-space:normal !important;
-          word-break:normal !important;
+          font-size:9px !important;
+          word-break:break-word !important;
         }
 
-        #pdfIndividual th:nth-child(1),
-        #pdfIndividual td:nth-child(1){
-          width:23% !important;
+        .tarjeta-reporte-pdf{
+          border:1px solid #cbd5e1;
+          border-radius:8px;
+          padding:8px;
+          margin-bottom:8px;
+          font-size:10px;
+          page-break-inside:avoid;
         }
 
-        #pdfIndividual th:nth-child(2),
-        #pdfIndividual td:nth-child(2){
-          width:24% !important;
-        }
-
-        #pdfIndividual th:nth-child(3),
-        #pdfIndividual td:nth-child(3){
-          width:26% !important;
-        }
-
-        #pdfIndividual th:nth-child(4),
-        #pdfIndividual td:nth-child(4){
-          width:27% !important;
+        .tarjeta-reporte-pdf p{
+          margin:4px 0;
         }
 
         .validacion-individual{
-          margin-top:28px;
-          padding-top:15px;
+          margin-top:22px;
+          padding-top:14px;
           border-top:3px solid #1565c0;
           display:flex;
           justify-content:space-between;
@@ -2826,39 +2850,42 @@ tablaHistorial.querySelectorAll('*').forEach(el => {
 
         .validacion-individual p{
           font-size:12px;
-          margin:6px 0;
+          margin:5px 0;
         }
 
         #qrPDFIndividual{
-          width:110px;
-          height:110px;
+          width:105px;
+          height:105px;
         }
       </style>
 
       <div class="encabezado-individual">
+
         <img src="logo.png" class="logo-individual">
 
         <div class="titulo-individual">
           <h1>SISTEMA DE ASISTENCIA ESCOLAR</h1>
-          <h2>Reporte Individual de Asistencia</h2>
+          <h2>Reporte Individual Integral</h2>
           <p>
             Fecha de emisión: ${fechaEmision}<br>
             Folio: ${folio}
           </p>
         </div>
+
       </div>
 
-     <h3>Historial por fechas</h3>
+      <h3>Historial de asistencia</h3>
 
-<div id="tablaPDFIndividual"></div>
+      <div id="tablaPDFIndividual"></div>
 
-<h3 style="margin-top:20px;">
-  Reportes escolares
-</h3>
+      <h3>Reportes escolares</h3>
 
-<div id="tablaReportesPDFIndividual"></div>
+      <div id="reportesPDFIndividual">
+        ${htmlReportes}
+      </div>
 
-<div class="validacion-individual">
+      <div class="validacion-individual">
+
         <div>
           <h3>Validación del documento</h3>
           <p>Este documento pertenece al expediente escolar digital.</p>
@@ -2866,6 +2893,7 @@ tablaHistorial.querySelectorAll('*').forEach(el => {
         </div>
 
         <div id="qrPDFIndividual"></div>
+
       </div>
 
     </div>
@@ -2874,146 +2902,123 @@ tablaHistorial.querySelectorAll('*').forEach(el => {
   document.body.appendChild(reporte);
 
   reporte
-  .querySelector('#tablaPDFIndividual')
-  .appendChild(tablaHistorial);
-
-const contenedorReportesPDF =
-  reporte.querySelector(
-    '#tablaReportesPDFIndividual'
-  );
-
-if(contenedorReportesPDF){
-  contenedorReportesPDF.innerHTML = htmlReportesPDF;
-}}
+    .querySelector('#tablaPDFIndividual')
+    .appendChild(tablaHistorial);
 
   const urlValidacion =
-  window.location.origin +
-  window.location.pathname.replace('index.html', '') +
-  'verificar.html?folio=' +
-  encodeURIComponent(folio);
+    'https://asistenciaaplicacion.github.io/sistema-asistencia-escolar/verificar.html?folio=' +
+    encodeURIComponent(folio);
 
-new QRCode(
-  reporte.querySelector('#qrPDFIndividual'),
-  {
-    text: urlValidacion,
-    width: 110,
-    height: 110
-  }
-);
+  new QRCode(
+    reporte.querySelector('#qrPDFIndividual'),
+    {
+      text:urlValidacion,
+      width:105,
+      height:105
+    }
+  );
 
   setTimeout(async () => {
 
-  const opciones = {
-    margin: [0.2, 0.2, 0.2, 0.2],
-    filename: `Reporte_Individual_${folio}.pdf`,
-    image: {
-      type: 'jpeg',
-      quality: 0.98
-    },
-    html2canvas: {
-      scale: 2,
-      useCORS: true,
-      scrollY: 0
-    },
-    jsPDF: {
-      unit: 'in',
-      format: 'letter',
-      orientation: 'landscape'
-    },
-    pagebreak: {
-      mode: ['avoid-all', 'css', 'legacy']
-    }
-  };
+    const opciones = {
+      margin:[0.2, 0.2, 0.2, 0.2],
+      filename:`Reporte_Individual_${folio}.pdf`,
+      image:{
+        type:'jpeg',
+        quality:0.98
+      },
+      html2canvas:{
+        scale:2,
+        useCORS:true,
+        scrollY:0
+      },
+      jsPDF:{
+        unit:'in',
+        format:'letter',
+        orientation:'landscape'
+      },
+      pagebreak:{
+        mode:['avoid-all', 'css', 'legacy']
+      }
+    };
 
-  try{
+    try{
 
-    mostrarLoader('Guardando PDF individual en Drive...');
+      mostrarLoader('Guardando PDF individual en Drive...');
 
-    const usuarioActivo =
-      JSON.parse(
-        localStorage.getItem('usuarioActivo')
-      );
+      const usuarioActivo =
+        JSON.parse(
+          localStorage.getItem('usuarioActivo')
+        );
 
-    const texto =
-      contenedor.innerText;
+      const dataUri =
+        await html2pdf()
+          .set(opciones)
+          .from(reporte.querySelector('#pdfIndividual'))
+          .outputPdf('datauristring');
 
-    const alumno =
-      texto.match(/Alumno\s+(.+)/)?.[1] ||
-      contenedor.querySelector('h3')?.innerText ||
-      'Alumno individual';
+      const base64 =
+        dataUri.split(',')[1];
 
-    const grupo =
-      texto.match(/Grupo\s+(.+)/)?.[1] ||
-      'Grupo individual';
+      const respuesta =
+        await fetch(API,{
+          method:'POST',
+          redirect:'follow',
+          body:JSON.stringify({
+            accion:'guardarPDFIndividualBase64',
+            alumno:alumno,
+            grupo:grupo,
+            usuario:usuarioActivo.nombre,
+            folio:folio,
+            base64:base64
+          })
+        });
 
-    const dataUri =
-      await html2pdf()
-        .set(opciones)
-        .from(reporte.querySelector('#pdfIndividual'))
-        .outputPdf('datauristring');
+      const datos =
+        await respuesta.json();
 
-    const base64 =
-      dataUri.split(',')[1];
+      if(datos.success){
 
-    const respuesta =
-      await fetch(API,{
-        method:'POST',
-        redirect:'follow',
-        body:JSON.stringify({
-          accion:'guardarPDFIndividualBase64',
-          alumno:alumno,
-          grupo:grupo,
-          usuario:usuarioActivo.nombre,
-          folio:folio,
-          base64:base64
-        })
-      });
+        mostrarMensajeSistema(
+          'PDF individual guardado correctamente.',
+          'exito'
+        );
 
-    const datos =
-      await respuesta.json();
+        window.open(
+          datos.url,
+          '_blank'
+        );
 
-    if(datos.success){
+        cargarHistorialPDF();
 
-      mostrarMensajeSistema(
-        'PDF individual guardado correctamente.',
-        'exito'
-      );
+      }else{
 
-      window.open(
-        datos.url,
-        '_blank'
-      );
+        mostrarMensajeSistema(
+          'No se pudo guardar el PDF individual.',
+          'error'
+        );
+      }
 
-      cargarHistorialPDF();
+    }catch(error){
 
-    }else{
+      console.error(error);
 
       mostrarMensajeSistema(
-        'No se pudo guardar el PDF individual.',
+        'Error guardando PDF individual.',
         'error'
       );
+
+    }finally{
+
+      ocultarLoader();
+
+      if(reporte){
+        document.body.removeChild(reporte);
+      }
     }
 
-  }catch(error){
-
-    console.error(error);
-
-    mostrarMensajeSistema(
-      'Error guardando PDF individual.',
-      'error'
-    );
-
-  }finally{
-
-    ocultarLoader();
-
-    if(reporte){
-      document.body.removeChild(reporte);
-    }
-  }
-
-}, 500);
-
+  }, 500);
+}
 
 
 async function registrarReporteAlumno(){
@@ -3487,4 +3492,3 @@ function formatearFechaReporte(fecha){
     }
   );
 }
-
