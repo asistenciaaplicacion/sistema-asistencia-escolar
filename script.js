@@ -2672,19 +2672,40 @@ const tablaHistorial =
 
 let tablaReportes = null;
 
+let htmlReportesPDF = `
+  <p style="font-size:12px;">
+    Sin reportes escolares registrados.
+  </p>
+`;
+
 if(tablasOriginales.length > 1){
 
-  tablaReportes =
-    tablasOriginales[1].cloneNode(true);
+  const filasReportes =
+    tablasOriginales[1].querySelectorAll('tr');
 
-  tablaReportes.querySelectorAll('*').forEach(el => {
-    el.removeAttribute('style');
-    el.removeAttribute('class');
-  });
+  htmlReportesPDF = '';
 
-  tablaReportes.style.width = '100%';
-  tablaReportes.style.borderCollapse = 'collapse';
-  tablaReportes.style.tableLayout = 'fixed';
+  for(let i = 1; i < filasReportes.length; i++){
+
+    const celdas =
+      filasReportes[i].querySelectorAll('td');
+
+    htmlReportesPDF += `
+      <div style="
+        border:1px solid #cbd5e1;
+        border-radius:8px;
+        padding:8px;
+        margin-bottom:8px;
+        font-size:10px;
+      ">
+        <p><strong>Fecha:</strong> ${celdas[0]?.innerText || ''}</p>
+        <p><strong>Tipo:</strong> ${celdas[1]?.innerText || ''}</p>
+        <p><strong>Docente:</strong> ${celdas[2]?.innerText || ''}</p>
+        <p><strong>Descripción:</strong> ${celdas[3]?.innerText || ''}</p>
+        <p><strong>Acción tomada:</strong> ${celdas[4]?.innerText || ''}</p>
+      </div>
+    `;
+  }
 }
 
 tablaHistorial.querySelectorAll('*').forEach(el => {
@@ -2864,21 +2885,8 @@ const contenedorReportesPDF =
   );
 
 if(contenedorReportesPDF){
-
-  if(tablaReportes){
-
-    contenedorReportesPDF
-      .appendChild(tablaReportes);
-
-  }else{
-
-    contenedorReportesPDF.innerHTML = `
-      <p style="font-size:12px;">
-        Sin reportes escolares registrados.
-      </p>
-    `;
-  }
-}
+  contenedorReportesPDF.innerHTML = htmlReportesPDF;
+}}
 
   const urlValidacion =
   window.location.origin +
