@@ -2854,7 +2854,31 @@ tablaHistorial.querySelectorAll('*').forEach(el => {
 
   document.body.appendChild(reporte);
 
-  reporte.querySelector('#tablaPDFIndividual').appendChild(tablaHistorial);
+  reporte
+  .querySelector('#tablaPDFIndividual')
+  .appendChild(tablaHistorial);
+
+const contenedorReportesPDF =
+  reporte.querySelector(
+    '#tablaReportesPDFIndividual'
+  );
+
+if(contenedorReportesPDF){
+
+  if(tablaReportes){
+
+    contenedorReportesPDF
+      .appendChild(tablaReportes);
+
+  }else{
+
+    contenedorReportesPDF.innerHTML = `
+      <p style="font-size:12px;">
+        Sin reportes escolares registrados.
+      </p>
+    `;
+  }
+}
 
   const urlValidacion =
   window.location.origin +
