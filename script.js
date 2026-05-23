@@ -2657,19 +2657,40 @@ function generarPDFIndividual(){
     return;
   }
 
-  const tablaOriginal = contenedor.querySelector('table');
+const tablaOriginal = contenedor.querySelector('table');
 
-  if(!tablaOriginal){
-    alert('No se encontró la tabla del historial individual.');
-    return;
-  }
+if(!tablaOriginal){
+  alert('No se encontró la tabla del historial individual.');
+  return;
+}
 
-  const tablaHistorial = tablaOriginal.cloneNode(true);
+const tablasOriginales =
+  contenedor.querySelectorAll('table');
 
-  tablaHistorial.querySelectorAll('*').forEach(el => {
+const tablaHistorial =
+  tablasOriginales[0].cloneNode(true);
+
+let tablaReportes = null;
+
+if(tablasOriginales.length > 1){
+
+  tablaReportes =
+    tablasOriginales[1].cloneNode(true);
+
+  tablaReportes.querySelectorAll('*').forEach(el => {
     el.removeAttribute('style');
     el.removeAttribute('class');
   });
+
+  tablaReportes.style.width = '100%';
+  tablaReportes.style.borderCollapse = 'collapse';
+  tablaReportes.style.tableLayout = 'fixed';
+}
+
+tablaHistorial.querySelectorAll('*').forEach(el => {
+  el.removeAttribute('style');
+  el.removeAttribute('class');
+});
 
   tablaHistorial.style.width = '100%';
   tablaHistorial.style.borderCollapse = 'collapse';
