@@ -3334,16 +3334,4 @@ async function buscarAlumnoParaReporte(){
   }
 }
 
-function seleccionarAlumnoReporte(index){
 
-  const alumno = alumnosReporteEncontrados[index];
-
-  if(!alumno) return;
-
-  document.getElementById('reporteUID').value = alumno.uid || '';
-  document.getElementById('reporteAlumno').value = alumno.nombre || '';
-  document.getElementById('reporteGrado').value = alumno.grado || '';
-  document.getElementById('reporteGrupo').value = alumno.grupoLetra || '';
-  document.getElementById('buscadorAlumnoReporte').value = alumno.nombre || '';
-  document.getElementById('resultadosAlumnoReporte').innerHTML = '';
-}
