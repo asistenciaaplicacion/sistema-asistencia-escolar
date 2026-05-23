@@ -3014,7 +3014,7 @@ new QRCode(
 
 }, 500);
 
-}
+
 
 async function registrarReporteAlumno(){
 
