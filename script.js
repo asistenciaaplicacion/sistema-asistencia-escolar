@@ -2748,13 +2748,21 @@ function generarPDFIndividual(){
     'IND-' + Date.now();
 
   const reporte =
-    document.createElement('div');
+  document.createElement('div');
 
-  reporte.style.position = 'fixed';
-  reporte.style.left = '-9999px';
-  reporte.style.top = '0';
+reporte.id = 'contenedorTemporalPDFIndividual';
 
-  reporte.innerHTML = `
+reporte.style.cssText = `
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 1100px;
+  background: white;
+  z-index: -9999;
+  pointer-events: none;
+`;
+
+reporte.innerHTML = `
     <div id="pdfIndividual">
 
       <style>
@@ -3012,9 +3020,12 @@ function generarPDFIndividual(){
 
       ocultarLoader();
 
-      if(reporte){
-        document.body.removeChild(reporte);
-      }
+      const temporal =
+  document.getElementById('contenedorTemporalPDFIndividual');
+
+if(temporal){
+  temporal.remove();
+}
     }
 
   }, 500);
