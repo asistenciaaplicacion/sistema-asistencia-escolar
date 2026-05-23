@@ -1,5 +1,5 @@
 const API =
-'https://script.google.com/macros/s/AKfycbxX7tKJJ4Q6sWhLEHEjiiP-u7_B5UAopB3Jt_XFmbqhj1TynyIMdy5gYbic6Yn_4GWW/exec';
+'https://script.google.com/macros/s/AKfycby41QBdhY9U4WKgwpbHM_p34PcP7EpFdJBQTuxqUOiW0mYJbgEUEgenQPUnk4yzFPZ6/exec';
 
 let gruposPermitidos = [];
 
@@ -3277,17 +3277,137 @@ function mostrarModuloAcademico(modulo){
 
   if(modulo === 'justificantes'){
 
-    contenedor.innerHTML = `
-      <div class="modulo-academico">
-        <h3>Justificantes</h3>
-        <p class="mensaje-vacio">
-          Módulo pendiente. Aquí se registrarán justificantes de inasistencia.
-        </p>
-      </div>
-    `;
+  contenedor.innerHTML = `
+    <div class="modulo-academico">
 
-    return;
-  }
+      <h3>Justificantes escolares</h3>
+
+      <p>
+        Registro institucional de justificantes.
+      </p>
+
+      <input
+        type="text"
+        id="buscadorAlumnoJustificante"
+        placeholder="Buscar alumno: García, Guadalupe, López..."
+        onkeyup="buscarAlumnoParaJustificante()">
+
+      <div
+        id="resultadosAlumnoJustificante"
+        class="resultados-alumno-reporte">
+      </div>
+
+      <div class="form-grid">
+
+        <input
+          type="text"
+          id="justificanteUID"
+          placeholder="UID"
+          readonly>
+
+        <input
+          type="text"
+          id="justificanteAlumno"
+          placeholder="Alumno"
+          readonly>
+
+        <input
+          type="text"
+          id="justificanteGrado"
+          placeholder="Grado"
+          readonly>
+
+        <input
+          type="text"
+          id="justificanteGrupo"
+          placeholder="Grupo"
+          readonly>
+
+        <input
+          type="text"
+          id="justificanteFecha"
+          readonly>
+
+        <select
+          id="tipoJustificante"
+          onchange="mostrarTipoOtroJustificante()">
+
+          <option value="">
+            Tipo de justificante
+          </option>
+
+          <option>Médico</option>
+          <option>Familiar</option>
+          <option>Oficial</option>
+          <option>Escolar</option>
+          <option>Otro</option>
+
+        </select>
+
+      </div>
+
+      <input
+        type="text"
+        id="tipoOtroJustificante"
+        placeholder="Especifica el tipo de justificante"
+        style="display:none; margin-top:10px;">
+
+      <textarea
+        id="motivoJustificante"
+        placeholder="Motivo del justificante"
+        rows="4">
+      </textarea>
+
+      <select
+        id="solicitaJustificante"
+        onchange="mostrarSolicitaOtro()">
+
+        <option value="">
+          Quién solicita
+        </option>
+
+        <option>Padre</option>
+        <option>Madre</option>
+        <option>Tutor</option>
+        <option>Otro</option>
+
+      </select>
+
+      <input
+        type="text"
+        id="solicitaOtro"
+        placeholder="Especifica quién solicita"
+        style="display:none; margin-top:10px;">
+
+      <div
+        id="bloqueINE"
+        style="display:none; margin-top:10px;">
+
+        <label>
+          Adjuntar identificación (INE)
+        </label>
+
+        <input
+          type="file"
+          id="archivoINE"
+          accept="image/*">
+
+      </div>
+
+      <button onclick="registrarJustificanteAlumno()">
+        Guardar justificante
+      </button>
+
+    </div>
+  `;
+
+  document.getElementById(
+    'justificanteFecha'
+  ).value =
+    new Date().toLocaleDateString('es-MX');
+
+  return;
+}
 
   if(modulo === 'calificaciones'){
 
@@ -3502,4 +3622,273 @@ function formatearFechaReporte(fecha){
       year:'numeric'
     }
   );
+}
+
+let alumnosJustificanteEncontrados = [];
+
+async function buscarAlumnoParaJustificante(){
+
+  const input =
+    document.getElementById(
+      'buscadorAlumnoJustificante'
+    );
+
+  const contenedor =
+    document.getElementById(
+      'resultadosAlumnoJustificante'
+    );
+
+  if(!input || !contenedor){
+    return;
+  }
+
+  const busqueda =
+    input.value.trim();
+
+  contenedor.innerHTML = '';
+
+  if(busqueda.length < 2){
+    return;
+  }
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=buscarReporteIndividual' +
+        '&busqueda=' +
+        encodeURIComponent(busqueda)
+      );
+
+    const alumnos =
+      await respuesta.json();
+
+    alumnosJustificanteEncontrados =
+      Array.isArray(alumnos)
+      ? alumnos
+      : [];
+
+    if(alumnosJustificanteEncontrados.length === 0){
+
+      contenedor.innerHTML = `
+        <p class="mensaje-vacio">
+          No se encontraron alumnos.
+        </p>
+      `;
+
+      return;
+    }
+
+    let html = '';
+
+    alumnosJustificanteEncontrados.forEach((alumno,index) => {
+
+      html += `
+        <div
+          class="item-alumno-reporte"
+          onclick="seleccionarAlumnoJustificante(${index})">
+
+          <strong>${alumno.nombre}</strong>
+
+          <small>
+            UID: ${alumno.uid}
+            · Grupo: ${alumno.grupo}
+          </small>
+
+        </div>
+      `;
+    });
+
+    contenedor.innerHTML = html;
+
+  }catch(error){
+
+    console.error(error);
+  }
+}
+
+
+function seleccionarAlumnoJustificante(index){
+
+  const alumno =
+    alumnosJustificanteEncontrados[index];
+
+  if(!alumno){
+    return;
+  }
+
+  document.getElementById(
+    'justificanteUID'
+  ).value =
+    alumno.uid || '';
+
+  document.getElementById(
+    'justificanteAlumno'
+  ).value =
+    alumno.nombre || '';
+
+  document.getElementById(
+    'justificanteGrado'
+  ).value =
+    alumno.grado || '';
+
+  document.getElementById(
+    'justificanteGrupo'
+  ).value =
+    alumno.grupoLetra || '';
+
+  document.getElementById(
+    'buscadorAlumnoJustificante'
+  ).value =
+    alumno.nombre || '';
+
+  document.getElementById(
+    'resultadosAlumnoJustificante'
+  ).innerHTML =
+    '';
+}
+
+
+function mostrarTipoOtroJustificante(){
+
+  const tipo =
+    document.getElementById(
+      'tipoJustificante'
+    ).value;
+
+  document.getElementById(
+    'tipoOtroJustificante'
+  ).style.display =
+    tipo === 'Otro'
+    ? 'block'
+    : 'none';
+}
+
+
+function mostrarSolicitaOtro(){
+
+  const solicita =
+    document.getElementById(
+      'solicitaJustificante'
+    ).value;
+
+  const mostrar =
+    solicita === 'Otro';
+
+  document.getElementById(
+    'solicitaOtro'
+  ).style.display =
+    mostrar
+    ? 'block'
+    : 'none';
+
+  document.getElementById(
+    'bloqueINE'
+  ).style.display =
+    mostrar
+    ? 'block'
+    : 'none';
+}
+
+
+async function registrarJustificanteAlumno(){
+
+  try{
+
+    const usuarioActivo =
+      JSON.parse(
+        localStorage.getItem(
+          'usuarioActivo'
+        )
+      );
+
+    const params =
+      new URLSearchParams({
+
+        accion:'registrarJustificante',
+
+        uid:
+          document.getElementById(
+            'justificanteUID'
+          ).value,
+
+        alumno:
+          document.getElementById(
+            'justificanteAlumno'
+          ).value,
+
+        grado:
+          document.getElementById(
+            'justificanteGrado'
+          ).value,
+
+        grupo:
+          document.getElementById(
+            'justificanteGrupo'
+          ).value,
+
+        tipoJustificante:
+          document.getElementById(
+            'tipoJustificante'
+          ).value,
+
+        tipoOtro:
+          document.getElementById(
+            'tipoOtroJustificante'
+          ).value,
+
+        motivo:
+          document.getElementById(
+            'motivoJustificante'
+          ).value,
+
+        solicita:
+          document.getElementById(
+            'solicitaJustificante'
+          ).value,
+
+        solicitaOtro:
+          document.getElementById(
+            'solicitaOtro'
+          ).value,
+
+        registradoPor:
+          usuarioActivo.nombre
+
+      });
+
+    const respuesta =
+      await fetch(
+        API + '?' + params.toString()
+      );
+
+    const datos =
+      await respuesta.json();
+
+    if(datos.success){
+
+      mostrarMensajeSistema(
+        'Justificante registrado correctamente.',
+        'exito'
+      );
+
+    }else{
+
+      mostrarMensajeSistema(
+        datos.mensaje ||
+        'No se pudo registrar el justificante.',
+        'error'
+      );
+    }
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error registrando justificante.',
+      'error'
+    );
+  }
 }
