@@ -3128,19 +3128,17 @@ function mostrarModuloAcademico(modulo){
         placeholder="Nombre del alumno"
         readonly>
 
-      <select id="reporteGrado">
-        <option value="">Selecciona grado</option>
-        <option>Primero</option>
-        <option>Segundo</option>
-        <option>Tercero</option>
-      </select>
+      <input
+        type="text"
+        id="reporteGrado"
+        placeholder="Grado"
+        readonly>
 
-      <select id="reporteGrupo">
-        <option value="">Selecciona grupo</option>
-        <option>A</option>
-        <option>B</option>
-        <option>C</option>
-      </select>
+      <input
+        type="text"
+        id="reporteGrupo"
+        placeholder="Grupo"
+        readonly>
 
       <select id="reporteTipo">
         <option value="">Tipo de reporte</option>
