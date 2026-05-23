@@ -1,5 +1,5 @@
 const API =
-'https://script.google.com/macros/s/AKfycbzR2HUb7TnctDHk8X4RvQWXaxBqZ8b6sCmbxfFiohmn2kMotO_xgdMuBw4Zhy5Ul98V/exec';
+'https://script.google.com/macros/s/AKfycbwIjtDEteSFrrBPlMgEep9UemAf19_g-M5GFJWG4UZclowdagRuzzv_dtCwAuRIm2ih/exec';
 
 let gruposPermitidos = [];
 
