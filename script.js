@@ -2365,7 +2365,7 @@ async function cargarHistorialIndividual(uid){
     );
 
     mostrarHistorialIndividual(datos);
-
+    cargarReportesAlumnoIndividual(uid, datos.nombre);
     mostrarMensajeSistema(
       'Historial individual cargado.',
       'exito'
@@ -3332,4 +3332,102 @@ async function buscarAlumnoParaReporte(){
   }
 }
 
+async function cargarReportesAlumnoIndividual(uid, alumno){
+
+  const contenedor =
+    document.getElementById('resultadoReporteIndividual');
+
+  if(!contenedor){
+    return;
+  }
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=reportesPorAlumno' +
+        '&uid=' +
+        encodeURIComponent(uid) +
+        '&alumno=' +
+        encodeURIComponent(alumno || '')
+      );
+
+    const datos =
+      await respuesta.json();
+
+    const reportes =
+      datos.reportes || [];
+
+    let html = `
+      <h3>Reportes escolares</h3>
+    `;
+
+    if(reportes.length === 0){
+
+      html += `
+        <p class="mensaje-vacio">
+          Este alumno no tiene reportes registrados.
+        </p>
+      `;
+
+    }else{
+
+      html += `
+        <table class="tabla-individual">
+          <tr>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Docente</th>
+            <th>Descripción</th>
+            <th>Acción tomada</th>
+          </tr>
+      `;
+
+      reportes.forEach(reporte => {
+
+        html += `
+          <tr>
+            <td>${formatearFechaReporte(reporte.fecha)}</td>
+            <td>${reporte.tipoReporte || ''}</td>
+            <td>${reporte.docente || ''}</td>
+            <td>${reporte.descripcion || ''}</td>
+            <td>${reporte.accionTomada || ''}</td>
+          </tr>
+        `;
+      });
+
+      html += `</table>`;
+    }
+
+    contenedor.innerHTML += html;
+
+  }catch(error){
+
+    console.error(error);
+  }
+}
+
+function formatearFechaReporte(fecha){
+
+  if(!fecha){
+    return 'Sin fecha';
+  }
+
+  const fechaObj =
+    new Date(fecha);
+
+  if(isNaN(fechaObj.getTime())){
+    return fecha;
+  }
+
+  return fechaObj.toLocaleDateString(
+    'es-MX',
+    {
+      day:'2-digit',
+      month:'2-digit',
+      year:'numeric'
+    }
+  );
+}
 
