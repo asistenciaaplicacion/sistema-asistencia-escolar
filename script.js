@@ -2829,11 +2829,17 @@ tablaHistorial.querySelectorAll('*').forEach(el => {
         </div>
       </div>
 
-      <h3>Historial por fechas</h3>
+     <h3>Historial por fechas</h3>
 
-      <div id="tablaPDFIndividual"></div>
+<div id="tablaPDFIndividual"></div>
 
-      <div class="validacion-individual">
+<h3 style="margin-top:20px;">
+  Reportes escolares
+</h3>
+
+<div id="tablaReportesPDFIndividual"></div>
+
+<div class="validacion-individual">
         <div>
           <h3>Validación del documento</h3>
           <p>Este documento pertenece al expediente escolar digital.</p>
