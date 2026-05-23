@@ -2670,8 +2670,6 @@ const tablasOriginales =
 const tablaHistorial =
   tablasOriginales[0].cloneNode(true);
 
-let tablaReportes = null;
-
 let htmlReportesPDF = `
   <p style="font-size:12px;">
     Sin reportes escolares registrados.
