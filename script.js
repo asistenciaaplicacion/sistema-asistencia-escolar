@@ -3347,7 +3347,7 @@ function seleccionarAlumnoReporte(index){
     '';
 }
 
-let alumnosReporteEncontrados = [];
+
 
 async function buscarAlumnoParaReporte(){
 
