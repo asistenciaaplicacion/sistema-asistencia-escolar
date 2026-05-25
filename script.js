@@ -1,5 +1,5 @@
 const API =
-'https://script.google.com/macros/s/AKfycby41QBdhY9U4WKgwpbHM_p34PcP7EpFdJBQTuxqUOiW0mYJbgEUEgenQPUnk4yzFPZ6/exec';
+'https://script.google.com/macros/s/AKfycbxoriJaFRurp6OS9Ztd6HMV0WbV1zjU8Gnoo3icrPEpdwhSVPJB1t4rSD7OwlE3X4Qb/exec';
 
 let gruposPermitidos = [];
 
@@ -2365,7 +2365,25 @@ async function cargarHistorialIndividual(uid){
     );
 
     mostrarHistorialIndividual(datos);
-    cargarReportesAlumnoIndividual(uid, datos.nombre);
+    await cargarReportesAlumnoIndividual(
+  uid,
+  datos.nombre
+);
+
+await cargarJustificantesAlumnoIndividual(
+  uid,
+  datos.nombre
+);
+
+await cargarPasesSalidaAlumnoIndividual(
+  uid,
+  datos.nombre
+);
+
+await cargarCitatoriosAlumnoIndividual(
+  uid,
+  datos.nombre
+);
     mostrarMensajeSistema(
       'Historial individual cargado.',
       'exito'
@@ -2386,13 +2404,21 @@ async function cargarHistorialIndividual(uid){
   }
 }
 
+
+
 function mostrarHistorialIndividual(datos){
 
-  console.log('DATOS HISTORIAL INDIVIDUAL:', datos);
+  const contenedor =
+    document.getElementById('resultadoReporteIndividual');
+
+  if(!contenedor){
+    console.error('No existe resultadoReporteIndividual');
+    return;
+  }
 
   if(!datos){
 
-    document.getElementById('resultadoReporteIndividual').innerHTML = `
+    contenedor.innerHTML = `
       <p class="mensaje-vacio">
         No se recibieron datos del alumno.
       </p>
@@ -2406,121 +2432,78 @@ function mostrarHistorialIndividual(datos){
     ? datos.historial
     : [];
 
-  let html = `
-    <div class="dashboard">
+  const fechaInicio =
+    document.getElementById('fechaInicioIndividual')?.value || '';
 
-      <div class="card">
-        <h3>Alumno</h3>
-        <p style="font-size:18px;">${datos.nombre || 'Sin nombre'}</p>
-      </div>
+  const fechaFin =
+    document.getElementById('fechaFinIndividual')?.value || '';
 
-      <div class="card">
-        <h3>Grupo</h3>
-        <p>${datos.grupo || 'Sin grupo'}</p>
-      </div>
+  if(fechaInicio || fechaFin){
 
-      <div class="card">
-        <h3>Asistencias</h3>
-        <p>${datos.asistencias || 0}</p>
-      </div>
+    historial = historial.filter(registro => {
 
-      <div class="card">
-        <h3>Faltas</h3>
-        <p>${datos.faltas || 0}</p>
-      </div>
-
-      <div class="card">
-        <h3>Promedio</h3>
-        <p>${datos.porcentaje || 0}%</p>
-      </div>
-
-    </div>
-
-    <h3>Historial por fechas</h3>
-  `;
-
-  if(historial.length === 0){
-
-    html += `
-      <p class="mensaje-vacio">
-        Este alumno todavía no tiene historial registrado.
-      </p>
-    `;
-
-  }else{
-
-    html += `
-      <table class="tabla-individual">
-        <tr>
-          <th>Fecha</th>
-          <th>Estado</th>
-        </tr>
-    `;
-
-    historial.forEach(registro => {
-
-      let estado =
-        String(registro.estado || '').toUpperCase();
-
-      let clase =
-        (
-          estado === 'ASISTENCIA' ||
-          estado === 'PRESENTE' ||
-          estado === 'ASISTIO' ||
-          estado === 'ASISTIÓ'
-        )
-        ? 'presente'
-        : 'falta';
-
-      let fechaTexto = '';
-
-      if(registro.fecha){
-
-        fechaTexto =
-          new Date(registro.fecha).toLocaleDateString('es-MX');
-
-      }else{
-
-        fechaTexto = 'Sin fecha';
+      if(!registro.fecha){
+        return false;
       }
 
-      html += `
-        <tr>
-          <td>${fechaTexto}</td>
-          <td class="${clase}">${registro.estado || 'Sin estado'}</td>
-        </tr>
-      `;
+      const fechaRegistro =
+        new Date(registro.fecha);
+
+      if(isNaN(fechaRegistro.getTime())){
+        return false;
+      }
+
+      const anio =
+        fechaRegistro.getFullYear();
+
+      const mes =
+        String(fechaRegistro.getMonth() + 1).padStart(2, '0');
+
+      const dia =
+        String(fechaRegistro.getDate()).padStart(2, '0');
+
+      const fechaClave =
+        anio + '-' + mes + '-' + dia;
+
+      if(fechaInicio && fechaClave < fechaInicio){
+        return false;
+      }
+
+      if(fechaFin && fechaClave > fechaFin){
+        return false;
+      }
+
+      return true;
     });
-
-    html += `</table>`;
   }
 
-  document.getElementById(
-    'resultadoReporteIndividual'
-  ).innerHTML = html;
-}
+  let asistenciasFiltradas = 0;
+  let faltasFiltradas = 0;
 
+  historial.forEach(registro => {
 
+    const estado =
+      String(registro.estado || '').toUpperCase();
 
-function mostrarHistorialIndividual(datos){
+    if(
+      estado === 'ASISTENCIA' ||
+      estado === 'PRESENTE' ||
+      estado === 'ASISTIO' ||
+      estado === 'ASISTIÓ'
+    ){
+      asistenciasFiltradas++;
+    }else{
+      faltasFiltradas++;
+    }
+  });
 
-  const contenedor =
-    document.getElementById('resultadoReporteIndividual');
+  const totalFiltrado =
+    asistenciasFiltradas + faltasFiltradas;
 
-  if(!contenedor){
-    console.error('No existe resultadoReporteIndividual');
-    return;
-  }
-
-  console.log(
-    'PINTANDO HISTORIAL:',
-    datos
-  );
-
-  let historial =
-    Array.isArray(datos.historial)
-    ? datos.historial
-    : [];
+  const promedioFiltrado =
+    totalFiltrado > 0
+    ? Math.round((asistenciasFiltradas / totalFiltrado) * 100)
+    : 0;
 
   let html = `
     <div class="dashboard">
@@ -2541,29 +2524,40 @@ function mostrarHistorialIndividual(datos){
 
       <div class="card">
         <h3>Asistencias</h3>
-        <p>${datos.asistencias || 0}</p>
+        <p>${asistenciasFiltradas}</p>
       </div>
 
       <div class="card">
         <h3>Faltas</h3>
-        <p>${datos.faltas || 0}</p>
+        <p>${faltasFiltradas}</p>
       </div>
 
       <div class="card">
         <h3>Promedio</h3>
-        <p>${datos.porcentaje || 0}%</p>
+        <p>${promedioFiltrado}%</p>
       </div>
 
     </div>
 
     <h3>Historial por fechas</h3>
+
+    <p class="mensaje-vacio">
+      ${
+        fechaInicio || fechaFin
+        ? 'Rango consultado: ' +
+          (fechaInicio || 'inicio') +
+          ' al ' +
+          (fechaFin || 'actual')
+        : 'Mostrando historial completo'
+      }
+    </p>
   `;
 
   if(historial.length === 0){
 
     html += `
       <p class="mensaje-vacio">
-        Este alumno no tiene registros en Almacenamiento.
+        No hay registros de asistencia en el rango seleccionado.
       </p>
     `;
 
@@ -2581,10 +2575,10 @@ function mostrarHistorialIndividual(datos){
 
     historial.forEach(registro => {
 
-      let estado =
+      const estado =
         String(registro.estado || '').toUpperCase();
 
-      let clase =
+      const clase =
         (
           estado === 'ASISTENCIA' ||
           estado === 'PRESENTE' ||
@@ -2598,45 +2592,44 @@ function mostrarHistorialIndividual(datos){
 
       if(registro.fecha){
         fechaTexto =
-  new Date(registro.fecha)
-    .toLocaleDateString(
-      'es-MX',
-      {
-        day:'2-digit',
-        month:'2-digit',
-        year:'numeric'
-      }
-    );
+          new Date(registro.fecha)
+            .toLocaleDateString(
+              'es-MX',
+              {
+                day:'2-digit',
+                month:'2-digit',
+                year:'numeric'
+              }
+            );
       }
 
-      html += `
-        <tr>
-          <td>${fechaTexto}</td>
-          
-<td>
+      let horaTexto = 'N/D';
 
-  ${
-    registro.hora
-    ? (
-        isNaN(new Date(registro.hora).getTime())
-        ? 'S/I'
-        : new Date(registro.hora)
-            .toLocaleTimeString(
+      if(registro.hora){
+
+        const horaObj =
+          new Date(registro.hora);
+
+        horaTexto =
+          isNaN(horaObj.getTime())
+          ? 'S/I'
+          : horaObj.toLocaleTimeString(
               'es-MX',
               {
                 hour:'2-digit',
                 minute:'2-digit',
                 second:'2-digit'
               }
-            )
-      )
-    : 'N/D'
-  }
+            );
+      }
 
-</td>
-
-
-          <td class="${clase}">${registro.estado || ''}</td>
+      html += `
+        <tr>
+          <td>${fechaTexto}</td>
+          <td>${horaTexto}</td>
+          <td class="${clase}">
+            ${registro.estado || ''}
+          </td>
           <td>${registro.puntualidad || ''}</td>
         </tr>
       `;
@@ -2647,6 +2640,8 @@ function mostrarHistorialIndividual(datos){
 
   contenedor.innerHTML = html;
 }
+
+
 
 function generarPDFIndividual(){
 
@@ -2678,56 +2673,161 @@ function generarPDFIndividual(){
   tablaHistorial.style.borderCollapse = 'collapse';
   tablaHistorial.style.tableLayout = 'fixed';
 
-  let htmlReportes = `
-    <p style="font-size:12px;">
-      Sin reportes escolares registrados.
-    </p>
-  `;
+  function obtenerTablaPorTitulo(tituloBuscado){
 
-  if(tablas.length > 1){
+    const titulos =
+      contenedor.querySelectorAll('h3');
+
+    for(let titulo of titulos){
+
+      if(
+        titulo.textContent
+          .toUpperCase()
+          .includes(tituloBuscado.toUpperCase())
+      ){
+
+        let elemento =
+          titulo.nextElementSibling;
+
+        while(elemento){
+
+          if(elemento.tagName === 'TABLE'){
+            return elemento;
+          }
+
+          const tabla =
+            elemento.querySelector
+            ? elemento.querySelector('table')
+            : null;
+
+          if(tabla){
+            return tabla;
+          }
+
+          elemento =
+            elemento.nextElementSibling;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  function crearTarjetasDesdeTabla(tabla, campos){
+
+    if(!tabla){
+      return `
+        <p style="font-size:12px;">
+          Sin registros.
+        </p>
+      `;
+    }
 
     const filas =
-      tablas[1].querySelectorAll('tr');
+      tabla.querySelectorAll('tr');
 
-    htmlReportes = '';
+    if(filas.length <= 1){
+      return `
+        <p style="font-size:12px;">
+          Sin registros.
+        </p>
+      `;
+    }
+
+    let html = '';
 
     for(let i = 1; i < filas.length; i++){
 
       const celdas =
         filas[i].querySelectorAll('td');
 
-      htmlReportes += `
+      html += `
         <div class="tarjeta-reporte-pdf">
+      `;
 
+      campos.forEach(campo => {
+
+        html += `
           <p>
-            <strong>Fecha:</strong>
-            ${celdas[0]?.innerText || ''}
+            <strong>${campo.titulo}:</strong>
+            ${celdas[campo.indice]?.innerText || ''}
           </p>
+        `;
+      });
 
-          <p>
-            <strong>Tipo:</strong>
-            ${celdas[1]?.innerText || ''}
-          </p>
-
-          <p>
-            <strong>Docente:</strong>
-            ${celdas[2]?.innerText || ''}
-          </p>
-
-          <p>
-            <strong>Descripción:</strong>
-            ${celdas[3]?.innerText || ''}
-          </p>
-
-          <p>
-            <strong>Acción tomada:</strong>
-            ${celdas[4]?.innerText || ''}
-          </p>
-
+      html += `
         </div>
       `;
     }
+
+    return html;
   }
+
+  const tablaReportes =
+    obtenerTablaPorTitulo('Reportes escolares');
+
+  const tablaJustificantes =
+    obtenerTablaPorTitulo('Justificantes escolares');
+
+  const tablaPases =
+    obtenerTablaPorTitulo('Pases de salida');
+
+  const tablaCitatorios =
+    obtenerTablaPorTitulo('Citatorios escolares');
+
+  const htmlReportes =
+    crearTarjetasDesdeTabla(
+      tablaReportes,
+      [
+        { titulo:'Fecha', indice:0 },
+        { titulo:'Tipo', indice:1 },
+        { titulo:'Docente', indice:2 },
+        { titulo:'Descripción', indice:3 },
+        { titulo:'Acción tomada', indice:4 }
+      ]
+    );
+
+  const htmlJustificantes =
+    crearTarjetasDesdeTabla(
+      tablaJustificantes,
+      [
+        { titulo:'Fecha', indice:0 },
+        { titulo:'Tipo', indice:1 },
+        { titulo:'Solicita', indice:2 },
+        { titulo:'Motivo', indice:3 },
+        { titulo:'Registró', indice:4 }
+      ]
+    );
+
+  const htmlPases =
+    crearTarjetasDesdeTabla(
+      tablaPases,
+      [
+        { titulo:'Fecha', indice:0 },
+        { titulo:'Hora salida', indice:1 },
+        { titulo:'Motivo', indice:2 },
+        { titulo:'Recoge', indice:3 },
+        { titulo:'Autoriza', indice:4 },
+        { titulo:'Folio', indice:5 }
+      ]
+    );
+
+  const htmlCitatorios =
+    crearTarjetasDesdeTabla(
+      tablaCitatorios,
+      [
+        { titulo:'Fecha registro', indice:0 },
+        { titulo:'Alumno', indice:1 },
+        { titulo:'Grado', indice:2 },
+        { titulo:'Grupo', indice:3 },
+        { titulo:'Fecha citatorio', indice:4 },
+        { titulo:'Hora citatorio', indice:5 },
+        { titulo:'Motivo', indice:6 },
+        { titulo:'Observaciones', indice:7 },
+        { titulo:'Registrado por', indice:8 },
+        { titulo:'Seguimiento', indice:9 }
+      ]
+    );
 
   const texto =
     contenedor.innerText;
@@ -2748,21 +2848,22 @@ function generarPDFIndividual(){
     'IND-' + Date.now();
 
   const reporte =
-  document.createElement('div');
+    document.createElement('div');
 
-reporte.id = 'contenedorTemporalPDFIndividual';
+  reporte.id =
+    'contenedorTemporalPDFIndividual';
 
-reporte.style.cssText = `
-  position: fixed;
-  left: -10000px;
-  top: 0;
-  width: 1100px;
-  background: white;
-  z-index: -9999;
-  pointer-events: none;
-`;
+  reporte.style.cssText = `
+    position: fixed;
+    left: -10000px;
+    top: 0;
+    width: 1100px;
+    background: white;
+    z-index: -9999;
+    pointer-events: none;
+  `;
 
-reporte.innerHTML = `
+  reporte.innerHTML = `
     <div id="pdfIndividual">
 
       <style>
@@ -2838,9 +2939,14 @@ reporte.innerHTML = `
           border:1px solid #cbd5e1;
           border-radius:8px;
           padding:8px;
-          margin-bottom:8px;
+          margin:0 1% 8px 0;
           font-size:10px;
           page-break-inside:avoid;
+          break-inside:avoid;
+          display:inline-block;
+          width:47%;
+          vertical-align:top;
+          box-sizing:border-box;
         }
 
         .tarjeta-reporte-pdf p{
@@ -2890,6 +2996,24 @@ reporte.innerHTML = `
 
       <div id="reportesPDFIndividual">
         ${htmlReportes}
+      </div>
+
+      <h3>Justificantes escolares</h3>
+
+      <div id="justificantesPDFIndividual">
+        ${htmlJustificantes}
+      </div>
+
+      <h3>Pases de salida</h3>
+
+      <div id="pasesPDFIndividual">
+        ${htmlPases}
+      </div>
+
+      <h3>Citatorios escolares</h3>
+
+      <div id="citatoriosPDFIndividual">
+        ${htmlCitatorios}
       </div>
 
       <div class="validacion-individual">
@@ -3021,15 +3145,18 @@ reporte.innerHTML = `
       ocultarLoader();
 
       const temporal =
-  document.getElementById('contenedorTemporalPDFIndividual');
+        document.getElementById(
+          'contenedorTemporalPDFIndividual'
+        );
 
-if(temporal){
-  temporal.remove();
-}
+      if(temporal){
+        temporal.remove();
+      }
     }
 
   }, 500);
 }
+
 
 
 async function registrarReporteAlumno(){
@@ -3246,34 +3373,201 @@ function mostrarModuloAcademico(modulo){
     return;
   }
 
-  if(modulo === 'bitacora'){
+if(modulo === 'citatorios'){
 
-    contenedor.innerHTML = `
-      <div class="modulo-academico">
-        <h3>Bitácora</h3>
-        <p class="mensaje-vacio">
-          Módulo pendiente. Aquí se registrarán observaciones generales,
-          seguimientos y acuerdos institucionales.
-        </p>
+  contenedor.innerHTML = `
+    <div class="modulo-academico">
+
+      <h3>Citatorios escolares</h3>
+
+      <p>
+        Registro institucional de citatorios.
+      </p>
+
+      <input
+        type="text"
+        id="buscadorAlumnoCitatorio"
+        placeholder="Buscar alumno: García, Guadalupe, López..."
+        onkeyup="buscarAlumnoParaCitatorio()">
+
+      <div
+        id="resultadosAlumnoCitatorio"
+        class="resultados-alumno-reporte">
       </div>
-    `;
 
-    return;
-  }
+      <div class="form-grid">
+
+        <input
+          type="text"
+          id="citatorioUID"
+          placeholder="UID"
+          readonly>
+
+        <input
+          type="text"
+          id="citatorioAlumno"
+          placeholder="Alumno"
+          readonly>
+
+        <input
+          type="text"
+          id="citatorioGrado"
+          placeholder="Grado"
+          readonly>
+
+        <input
+          type="text"
+          id="citatorioGrupo"
+          placeholder="Grupo"
+          readonly>
+
+        <input
+          type="date"
+          id="fechaCitatorio">
+
+        <input
+          type="time"
+          id="horaCitatorio">
+
+        <input
+          type="text"
+          id="responsableCitatorio"
+          placeholder="Responsable"
+          readonly>
+
+      </div>
+
+      <textarea
+        id="motivoCitatorio"
+        placeholder="Motivo del citatorio"
+        rows="4"></textarea>
+
+      <textarea
+        id="observacionesCitatorio"
+        placeholder="Observaciones"
+        rows="3"></textarea>
+
+      <button onclick="registrarCitatorioAlumno()">
+        Guardar citatorio
+      </button>
+
+      <hr style="margin:24px 0;">
+
+      <h3>Seguimiento de citatorios</h3>
+
+      <input
+        type="text"
+        id="busquedaCitatorios"
+        placeholder="Buscar por alumno, UID o folio"
+        onkeyup="buscarCitatoriosWeb()">
+
+      <div id="resultadoBusquedaCitatorios"></div>
+
+    </div>
+  `;
+
+const usuarioActivo =
+  JSON.parse(
+    localStorage.getItem('usuarioActivo')
+  );
+
+if(usuarioActivo){
+
+  document.getElementById('responsableCitatorio').value =
+    usuarioActivo.nombre || '';
+}
+
+  return;
+}
 
   if(modulo === 'pases'){
 
-    contenedor.innerHTML = `
-      <div class="modulo-academico">
-        <h3>Pase de salida</h3>
-        <p class="mensaje-vacio">
-          Módulo pendiente. Solo Dirección y Administración podrán generar pases.
-        </p>
-      </div>
-    `;
+  contenedor.innerHTML = `
+    <div class="modulo-academico">
 
-    return;
-  }
+      <h3>Pase de salida</h3>
+
+      <p>
+        Registro institucional de salidas anticipadas.
+      </p>
+
+      <input
+        type="text"
+        id="buscadorAlumnoPase"
+        placeholder="Buscar alumno: García, Guadalupe, López..."
+        onkeyup="buscarAlumnoParaPase()">
+
+      <div
+        id="resultadosAlumnoPase"
+        class="resultados-alumno-reporte">
+      </div>
+
+      <div class="form-grid">
+
+        <input
+          type="text"
+          id="paseUID"
+          placeholder="UID"
+          readonly>
+
+        <input
+          type="text"
+          id="paseAlumno"
+          placeholder="Alumno"
+          readonly>
+
+        <input
+          type="text"
+          id="paseGrado"
+          placeholder="Grado"
+          readonly>
+
+        <input
+          type="text"
+          id="paseGrupo"
+          placeholder="Grupo"
+          readonly>
+
+        <input
+          type="time"
+          id="paseHoraSalida">
+
+        <input
+          type="text"
+          id="pasePersonaRecoge"
+          placeholder="Persona que recoge">
+
+        <input
+          type="text"
+          id="paseParentesco"
+          placeholder="Parentesco">
+
+        <input
+          type="text"
+          id="paseAutoriza"
+          placeholder="Autoriza">
+
+      </div>
+
+      <textarea
+        id="paseMotivo"
+        placeholder="Motivo de salida"
+        rows="4"></textarea>
+
+      <textarea
+        id="paseObservaciones"
+        placeholder="Observaciones"
+        rows="3"></textarea>
+
+      <button onclick="registrarPaseSalidaAlumno()">
+        Guardar pase de salida
+      </button>
+
+    </div>
+  `;
+
+  return;
+}
 
   if(modulo === 'justificantes'){
 
@@ -3411,17 +3705,10 @@ function mostrarModuloAcademico(modulo){
 
   if(modulo === 'calificaciones'){
 
-    contenedor.innerHTML = `
-      <div class="modulo-academico">
-        <h3>Calificaciones</h3>
-        <p class="mensaje-vacio">
-          Módulo pendiente. Aquí se capturarán o importarán calificaciones.
-        </p>
-      </div>
-    `;
+    mostrarModuloCalificaciones();
 
     return;
-  }
+}
 }
 
 let alumnosReporteEncontrados = [];
@@ -3891,4 +4178,1304 @@ async function registrarJustificanteAlumno(){
       'error'
     );
   }
+}
+
+async function cargarJustificantesAlumnoIndividual(uid, alumno){
+
+  const contenedor =
+    document.getElementById('resultadoReporteIndividual');
+
+  if(!contenedor){
+    return;
+  }
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=justificantesPorAlumno' +
+        '&uid=' +
+        encodeURIComponent(uid) +
+        '&alumno=' +
+        encodeURIComponent(alumno || '')
+      );
+
+    const datos =
+      await respuesta.json();
+
+    const justificantes =
+      datos.justificantes || [];
+
+    let html = `
+      <h3>Justificantes escolares</h3>
+    `;
+
+    if(justificantes.length === 0){
+
+      html += `
+        <p class="mensaje-vacio">
+          Este alumno no tiene justificantes registrados.
+        </p>
+      `;
+
+    }else{
+
+      html += `
+        <table class="tabla-individual">
+          <tr>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Solicita</th>
+            <th>Motivo</th>
+            <th>Registró</th>
+          </tr>
+      `;
+
+      justificantes.forEach(justificante => {
+
+        const tipo =
+          justificante.tipoJustificante === 'Otro'
+          ? justificante.tipoOtro
+          : justificante.tipoJustificante;
+
+        const solicita =
+          justificante.solicita === 'Otro'
+          ? justificante.solicitaOtro
+          : justificante.solicita;
+
+        html += `
+          <tr>
+            <td>${formatearFechaReporte(justificante.fecha)}</td>
+            <td>${tipo || ''}</td>
+            <td>${solicita || ''}</td>
+            <td>${justificante.motivo || ''}</td>
+            <td>${justificante.registradoPor || ''}</td>
+          </tr>
+        `;
+      });
+
+      html += `</table>`;
+    }
+
+    contenedor.innerHTML += html;
+
+  }catch(error){
+
+    console.error(error);
+  }
+}
+
+let alumnosPaseEncontrados = [];
+
+async function buscarAlumnoParaPase(){
+
+  const input =
+    document.getElementById('buscadorAlumnoPase');
+
+  const contenedor =
+    document.getElementById('resultadosAlumnoPase');
+
+  if(!input || !contenedor){
+    return;
+  }
+
+  const busqueda =
+    input.value.trim();
+
+  contenedor.innerHTML = '';
+
+  if(busqueda.length < 2){
+    return;
+  }
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=buscarReporteIndividual' +
+        '&busqueda=' +
+        encodeURIComponent(busqueda)
+      );
+
+    const alumnos =
+      await respuesta.json();
+
+    alumnosPaseEncontrados =
+      Array.isArray(alumnos)
+      ? alumnos
+      : [];
+
+    if(alumnosPaseEncontrados.length === 0){
+
+      contenedor.innerHTML = `
+        <p class="mensaje-vacio">
+          No se encontraron alumnos.
+        </p>
+      `;
+
+      return;
+    }
+
+    let html = '';
+
+    alumnosPaseEncontrados.forEach((alumno,index) => {
+
+      html += `
+        <div
+          class="item-alumno-reporte"
+          onclick="seleccionarAlumnoPase(${index})">
+
+          <strong>${alumno.nombre}</strong>
+
+          <small>
+            UID: ${alumno.uid}
+            · Grupo: ${alumno.grupo}
+          </small>
+
+        </div>
+      `;
+    });
+
+    contenedor.innerHTML = html;
+
+  }catch(error){
+
+    console.error(error);
+
+    contenedor.innerHTML = `
+      <p class="mensaje-vacio">
+        Error buscando alumno.
+      </p>
+    `;
+  }
+}
+
+
+function seleccionarAlumnoPase(index){
+
+  const alumno =
+    alumnosPaseEncontrados[index];
+
+  if(!alumno){
+    return;
+  }
+
+  document.getElementById('paseUID').value =
+    alumno.uid || '';
+
+  document.getElementById('paseAlumno').value =
+    alumno.nombre || '';
+
+  document.getElementById('paseGrado').value =
+    alumno.grado || '';
+
+  document.getElementById('paseGrupo').value =
+    alumno.grupoLetra || '';
+
+  document.getElementById('buscadorAlumnoPase').value =
+    alumno.nombre || '';
+
+  document.getElementById('resultadosAlumnoPase').innerHTML =
+    '';
+}
+
+
+async function registrarPaseSalidaAlumno(){
+
+  const usuarioActivo =
+    JSON.parse(
+      localStorage.getItem('usuarioActivo')
+    );
+
+  if(!usuarioActivo){
+
+    mostrarMensajeSistema(
+      'No hay sesión activa.',
+      'error'
+    );
+
+    return;
+  }
+
+  const params =
+    new URLSearchParams({
+
+      accion:'registrarPaseSalida',
+
+      uid:
+        document.getElementById('paseUID').value,
+
+      alumno:
+        document.getElementById('paseAlumno').value,
+
+      grado:
+        document.getElementById('paseGrado').value,
+
+      grupo:
+        document.getElementById('paseGrupo').value,
+
+      horaSalida:
+        document.getElementById('paseHoraSalida').value,
+
+      motivo:
+        document.getElementById('paseMotivo').value,
+
+      personaRecoge:
+        document.getElementById('pasePersonaRecoge').value,
+
+      parentesco:
+        document.getElementById('paseParentesco').value,
+
+      autoriza:
+        document.getElementById('paseAutoriza').value,
+
+      observaciones:
+        document.getElementById('paseObservaciones').value,
+
+      registradoPor:
+        usuarioActivo.nombre
+
+    });
+
+  mostrarLoader('Guardando pase de salida...');
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API + '?' + params.toString()
+      );
+
+    const datos =
+      await respuesta.json();
+
+    if(datos.success){
+
+  mostrarMensajeSistema(
+    'Pase registrado correctamente. Folio: ' + datos.folio,
+    'exito'
+  );
+
+  mostrarPaseSalidaImprimible({
+    folio: datos.folio,
+    alumno: document.getElementById('paseAlumno').value,
+    grado: document.getElementById('paseGrado').value,
+    grupo: document.getElementById('paseGrupo').value,
+    horaSalida: document.getElementById('paseHoraSalida').value,
+    motivo: document.getElementById('paseMotivo').value,
+    personaRecoge: document.getElementById('pasePersonaRecoge').value,
+    parentesco: document.getElementById('paseParentesco').value,
+    autoriza: document.getElementById('paseAutoriza').value,
+    observaciones: document.getElementById('paseObservaciones').value,
+    registradoPor: usuarioActivo.nombre
+  });
+
+}else{
+
+      mostrarMensajeSistema(
+        datos.mensaje ||
+        'No se pudo registrar el pase.',
+        'error'
+      );
+    }
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error registrando pase de salida.',
+      'error'
+    );
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
+
+async function cargarPasesSalidaAlumnoIndividual(uid, alumno){
+
+  const contenedor =
+    document.getElementById(
+      'resultadoReporteIndividual'
+    );
+
+  if(!contenedor){
+    return;
+  }
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=pasesSalidaPorAlumno' +
+        '&uid=' +
+        encodeURIComponent(uid) +
+        '&alumno=' +
+        encodeURIComponent(alumno || '')
+      );
+
+    const datos =
+      await respuesta.json();
+
+    const pases =
+      datos.pases || [];
+
+    let html = `
+      <h3>Pases de salida</h3>
+    `;
+
+    if(pases.length === 0){
+
+      html += `
+        <p class="mensaje-vacio">
+          Este alumno no tiene pases registrados.
+        </p>
+      `;
+
+    }else{
+
+      html += `
+        <table class="tabla-individual">
+
+          <tr>
+            <th>Fecha</th>
+            <th>Hora salida</th>
+            <th>Motivo</th>
+            <th>Recoge</th>
+            <th>Autoriza</th>
+            <th>Folio</th>
+          </tr>
+      `;
+
+      pases.forEach(pase => {
+
+        html += `
+          <tr>
+
+            <td>
+              ${formatearFechaReporte(pase.fecha)}
+            </td>
+
+            <td>
+              ${formatearHoraCorta(pase.horaSalida)}
+            </td>
+
+            <td>
+              ${pase.motivo || ''}
+            </td>
+
+            <td>
+              ${pase.personaRecoge || ''}
+            </td>
+
+            <td>
+              ${pase.autoriza || ''}
+            </td>
+
+            <td>
+              ${pase.folio || ''}
+            </td>
+
+          </tr>
+        `;
+      });
+
+      html += `
+        </table>
+      `;
+    }
+
+    contenedor.innerHTML += html;
+
+  }catch(error){
+
+    console.error(error);
+  }
+}
+
+function mostrarPaseSalidaImprimible(pase){
+
+  const contenedor =
+    document.getElementById('contenedorModuloAcademico');
+
+  if(!contenedor){
+    return;
+  }
+
+  contenedor.innerHTML += `
+    <div id="paseSalidaImprimible" class="pase-salida-imprimible">
+
+      <div class="pase-header">
+        <img src="logo.png" class="pase-logo">
+
+        <div>
+          <h2>PASE DE SALIDA</h2>
+          <p>Sistema de Asistencia Escolar</p>
+          <p><strong>Folio:</strong> ${pase.folio}</p>
+        </div>
+      </div>
+
+      <div class="pase-datos">
+
+        <p><strong>Alumno:</strong> ${pase.alumno}</p>
+        <p><strong>Grupo:</strong> ${pase.grado} ${pase.grupo}</p>
+        <p><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-MX')}</p>
+        <p><strong>Hora de salida:</strong> ${pase.horaSalida}</p>
+        <p><strong>Motivo:</strong> ${pase.motivo}</p>
+        <p><strong>Persona que recoge:</strong> ${pase.personaRecoge}</p>
+        <p><strong>Parentesco:</strong> ${pase.parentesco}</p>
+        <p><strong>Autoriza:</strong> ${pase.autoriza}</p>
+        <p><strong>Registró:</strong> ${pase.registradoPor}</p>
+        <p><strong>Observaciones:</strong> ${pase.observaciones || 'Sin observaciones'}</p>
+
+      </div>
+
+      <div class="pase-firmas">
+
+        <div>
+          <div class="linea-firma"></div>
+          <p>Firma de autorización</p>
+        </div>
+
+        <div>
+          <div class="linea-firma"></div>
+          <p>Firma de quien recoge</p>
+        </div>
+
+        <div>
+          <div class="linea-firma"></div>
+          <p>Control de acceso</p>
+        </div>
+
+      </div>
+
+      <div class="acciones-pase no-print">
+
+  <button onclick="imprimirPaseSalida()">
+    Imprimir pase
+  </button>
+
+  <button
+    class="btn-cerrar-pase"
+    onclick="cerrarPaseSalida()">
+
+    Cerrar pase
+  </button>
+
+</div>
+
+    </div>
+  `;
+}
+
+
+function imprimirPaseSalida(){
+
+  const pase =
+    document.getElementById('paseSalidaImprimible');
+
+  if(!pase){
+    mostrarMensajeSistema(
+      'No hay pase para imprimir.',
+      'error'
+    );
+    return;
+  }
+
+  const ventana =
+    window.open('', '_blank');
+
+  ventana.document.write(`
+    <html>
+      <head>
+        <title>Pase de salida</title>
+        <link rel="stylesheet" href="styles.css">
+      </head>
+
+      <body>
+        ${pase.outerHTML}
+
+        <script>
+          window.onload = function(){
+            window.print();
+          };
+        <\/script>
+      </body>
+    </html>
+  `);
+
+  ventana.document.close();
+}
+
+function cerrarPaseSalida(){
+
+  const pase =
+    document.getElementById(
+      'paseSalidaImprimible'
+    );
+
+  if(pase){
+    pase.remove();
+  }
+}
+
+let alumnosCitatorioEncontrados = [];
+
+async function buscarAlumnoParaCitatorio(){
+
+  const input =
+    document.getElementById(
+      'buscadorAlumnoCitatorio'
+    );
+
+  const contenedor =
+    document.getElementById(
+      'resultadosAlumnoCitatorio'
+    );
+
+  if(!input || !contenedor){
+    return;
+  }
+
+  const busqueda =
+    input.value.trim();
+
+  contenedor.innerHTML = '';
+
+  if(busqueda.length < 2){
+    return;
+  }
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=buscarReporteIndividual' +
+        '&busqueda=' +
+        encodeURIComponent(busqueda)
+      );
+
+    const alumnos =
+      await respuesta.json();
+
+    alumnosCitatorioEncontrados =
+      Array.isArray(alumnos)
+      ? alumnos
+      : [];
+
+    if(alumnosCitatorioEncontrados.length === 0){
+
+      contenedor.innerHTML = `
+        <p class="mensaje-vacio">
+          No se encontraron alumnos.
+        </p>
+      `;
+
+      return;
+    }
+
+    let html = '';
+
+    alumnosCitatorioEncontrados.forEach((alumno,index) => {
+
+      html += `
+        <div
+          class="item-alumno-reporte"
+          onclick="seleccionarAlumnoCitatorio(${index})">
+
+          <strong>${alumno.nombre}</strong>
+
+          <small>
+            UID: ${alumno.uid}
+            · Grupo: ${alumno.grupo}
+          </small>
+
+        </div>
+      `;
+    });
+
+    contenedor.innerHTML = html;
+
+  }catch(error){
+
+    console.error(error);
+  }
+}
+
+
+function seleccionarAlumnoCitatorio(index){
+
+  const alumno =
+    alumnosCitatorioEncontrados[index];
+
+  if(!alumno){
+    return;
+  }
+
+  document.getElementById(
+    'citatorioUID'
+  ).value =
+    alumno.uid || '';
+
+  document.getElementById(
+    'citatorioAlumno'
+  ).value =
+    alumno.nombre || '';
+
+  document.getElementById(
+    'citatorioGrado'
+  ).value =
+    alumno.grado || '';
+
+  document.getElementById(
+    'citatorioGrupo'
+  ).value =
+    alumno.grupoLetra || '';
+
+  document.getElementById(
+    'buscadorAlumnoCitatorio'
+  ).value =
+    alumno.nombre || '';
+
+  document.getElementById(
+    'resultadosAlumnoCitatorio'
+  ).innerHTML =
+    '';
+}
+
+
+async function registrarCitatorioAlumno(){
+
+  const usuarioActivo =
+    JSON.parse(
+      localStorage.getItem('usuarioActivo')
+    );
+
+  if(!usuarioActivo){
+
+    mostrarMensajeSistema(
+      'No hay sesión activa.',
+      'error'
+    );
+
+    return;
+  }
+
+  const params =
+    new URLSearchParams({
+
+      accion:'registrarCitatorio',
+
+      uid:
+        document.getElementById('citatorioUID').value,
+
+      alumno:
+        document.getElementById('citatorioAlumno').value,
+
+      grado:
+        document.getElementById('citatorioGrado').value,
+
+      grupo:
+        document.getElementById('citatorioGrupo').value,
+
+      fechaCitatorio:
+        document.getElementById('fechaCitatorio').value,
+
+      horaCitatorio:
+        document.getElementById('horaCitatorio').value,
+
+      motivo:
+        document.getElementById('motivoCitatorio').value,
+
+      responsable:
+        document.getElementById('responsableCitatorio').value,
+
+      observaciones:
+        document.getElementById('observacionesCitatorio').value,
+
+      areaCita:
+        usuarioActivo.rol || usuarioActivo.nombre,
+
+      registradoPor:
+        usuarioActivo.nombre
+
+    });
+
+  mostrarLoader('Guardando citatorio...');
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API + '?' + params.toString()
+      );
+
+    const datos =
+      await respuesta.json();
+
+    if(datos.success){
+
+      mostrarMensajeSistema(
+        'Citatorio registrado correctamente. Folio: ' +
+        datos.folio,
+        'exito'
+      );
+
+      buscarCitatoriosWeb();
+
+    }else{
+
+      mostrarMensajeSistema(
+        datos.mensaje ||
+        'No se pudo registrar el citatorio.',
+        'error'
+      );
+    }
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error registrando citatorio.',
+      'error'
+    );
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
+
+
+async function buscarCitatoriosWeb(){
+
+  const busqueda =
+    document.getElementById(
+      'busquedaCitatorios'
+    )?.value || '';
+
+  const contenedor =
+    document.getElementById(
+      'resultadoBusquedaCitatorios'
+    );
+
+  if(!contenedor){
+    return;
+  }
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=buscarCitatorios' +
+        '&busqueda=' +
+        encodeURIComponent(busqueda)
+      );
+
+    const datos =
+      await respuesta.json();
+
+    const citatorios =
+      datos.citatorios || [];
+
+    if(citatorios.length === 0){
+
+      contenedor.innerHTML = `
+        <p class="mensaje-vacio">
+          No se encontraron citatorios.
+        </p>
+      `;
+
+      return;
+    }
+
+    let html = `
+      <table class="tabla-individual">
+
+        <tr>
+          <th>Alumno</th>
+          <th>Fecha</th>
+          <th>Responsable</th>
+          <th>Folio</th>
+          <th>Seguimiento</th>
+        </tr>
+    `;
+
+    citatorios.forEach(citatorio => {
+
+      html += `
+        <tr>
+
+          <td>
+            ${citatorio.alumno}
+          </td>
+
+          <td>
+            ${citatorio.fechaCitatorio}
+          </td>
+
+          <td>
+            ${citatorio.responsable || ''}
+          </td>
+
+          <td>
+            ${citatorio.folio}
+          </td>
+
+          <td>
+
+            <select
+              onchange="
+                actualizarSeguimientoCitatorioWeb(
+                  '${citatorio.folio}',
+                  this.value
+                )
+              ">
+
+              <option
+                value="No atendido"
+                ${
+                  citatorio.seguimiento ===
+                  'No atendido'
+                  ? 'selected'
+                  : ''
+                }>
+
+                No atendido
+
+              </option>
+
+              <option
+                value="Atendido"
+                ${
+                  citatorio.seguimiento ===
+                  'Atendido'
+                  ? 'selected'
+                  : ''
+                }>
+
+                Atendido
+
+              </option>
+
+            </select>
+
+          </td>
+
+        </tr>
+      `;
+    });
+
+    html += `
+      </table>
+    `;
+
+    contenedor.innerHTML = html;
+
+  }catch(error){
+
+    console.error(error);
+  }
+}
+
+
+async function actualizarSeguimientoCitatorioWeb(
+  folio,
+  seguimiento
+){
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=actualizarSeguimientoCitatorio' +
+        '&folio=' +
+        encodeURIComponent(folio) +
+        '&seguimiento=' +
+        encodeURIComponent(seguimiento)
+      );
+
+    const datos =
+      await respuesta.json();
+
+    if(datos.success){
+
+      mostrarMensajeSistema(
+        'Seguimiento actualizado.',
+        'exito'
+      );
+
+    }else{
+
+      mostrarMensajeSistema(
+        datos.mensaje,
+        'error'
+      );
+    }
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error actualizando seguimiento.',
+      'error'
+    );
+  }
+}
+
+async function cargarCitatoriosAlumnoIndividual(uid, alumno){
+
+  const contenedor =
+    document.getElementById(
+      'resultadoReporteIndividual'
+    );
+
+  if(!contenedor){
+    return;
+  }
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=citatoriosPorAlumno' +
+        '&uid=' +
+        encodeURIComponent(uid) +
+        '&alumno=' +
+        encodeURIComponent(alumno || '')
+      );
+
+    const datos =
+      await respuesta.json();
+
+    const citatorios =
+      datos.citatorios || [];
+
+    let html = `
+      <h3>Citatorios escolares</h3>
+    `;
+
+    if(citatorios.length === 0){
+
+      html += `
+        <p class="mensaje-vacio">
+          Este alumno no tiene citatorios registrados.
+        </p>
+      `;
+
+    }else{
+
+      html += `
+        <table class="tabla-individual">
+
+          <tr>
+            <th>Fecha registro</th>
+            <th>Alumno</th>
+            <th>Grado</th>
+            <th>Grupo</th>
+            <th>Fecha citatorio</th>
+            <th>Hora</th>
+            <th>Motivo</th>
+            <th>Observaciones</th>
+            <th>Registrado por</th>
+            <th>Seguimiento</th>
+          </tr>
+      `;
+
+      citatorios.forEach(citatorio => {
+
+        html += `
+          <tr>
+
+            <td>${formatearFechaReporte(citatorio.fechaRegistro)}</td>
+            <td>${citatorio.alumno || ''}</td>
+            <td>${citatorio.grado || ''}</td>
+            <td>${citatorio.grupo || ''}</td>
+            <td>${formatearFechaCorta(citatorio.fechaCitatorio)}</td>
+            <td>${formatearHoraCorta(citatorio.horaCitatorio)}</td>
+            <td>${citatorio.motivo || ''}</td>
+            <td>${citatorio.observaciones || ''}</td>
+            <td>${citatorio.registradoPor || ''}</td>
+            <td>${citatorio.seguimiento || ''}</td>
+
+          </tr>
+        `;
+      });
+
+      html += `
+        </table>
+      `;
+    }
+
+    contenedor.innerHTML += html;
+
+  contenedor.innerHTML += `
+  <div class="acciones-reporte-individual">
+    <button
+      onclick="generarPDFIndividual()"
+      class="btn-pdf-individual">
+
+      Generar PDF individual
+
+    </button>
+  </div>
+`;
+
+  }catch(error){
+
+    console.error(error);
+  }
+}
+
+function formatearFechaCorta(valor){
+
+  if(!valor){
+    return '';
+  }
+
+  const fecha =
+    new Date(valor);
+
+  if(isNaN(fecha.getTime())){
+    return valor;
+  }
+
+  return fecha.toLocaleDateString(
+    'es-MX',
+    {
+      day:'2-digit',
+      month:'2-digit',
+      year:'numeric'
+    }
+  );
+}
+
+
+function formatearHoraCorta(valor){
+
+  if(!valor){
+    return '';
+  }
+
+  const fecha =
+    new Date(valor);
+
+  if(isNaN(fecha.getTime())){
+    return valor;
+  }
+
+  return fecha.toLocaleTimeString(
+    'es-MX',
+    {
+      hour:'2-digit',
+      minute:'2-digit'
+    }
+  );
+}
+
+// =====================================
+// MOSTRAR MÓDULO CALIFICACIONES
+// =====================================
+
+function mostrarModuloCalificaciones(){
+
+  const contenedor =
+    document.getElementById('contenedorModuloAcademico');
+
+  contenedor.innerHTML = `
+    <div class="form-admin">
+
+      <h3>
+        Captura de calificaciones
+      </h3>
+
+      <div class="grid-admin">
+
+        <input
+          type="text"
+          id="calificacionUID"
+          placeholder="UID del alumno">
+
+        <input
+          type="text"
+          id="calificacionAlumno"
+          placeholder="Nombre del alumno">
+
+        <select
+          id="calificacionGrado"
+          onchange="cargarMateriasCalificacion()">
+
+          <option value="">
+            Selecciona grado
+          </option>
+
+          <option value="Primero">
+            Primero
+          </option>
+
+          <option value="Segundo">
+            Segundo
+          </option>
+
+          <option value="Tercero">
+            Tercero
+          </option>
+
+        </select>
+
+        <input
+          type="text"
+          id="calificacionGrupo"
+          placeholder="Grupo">
+
+        <select id="calificacionMateria">
+
+          <option value="">
+            Selecciona materia
+          </option>
+
+        </select>
+
+        <select id="calificacionPeriodo">
+
+          <option value="">
+            Selecciona periodo
+          </option>
+
+          <option value="1er Periodo">
+            1er Periodo
+          </option>
+
+          <option value="2do Periodo">
+            2do Periodo
+          </option>
+
+          <option value="3er Periodo">
+            3er Periodo
+          </option>
+
+        </select>
+
+        <input
+          type="number"
+          id="calificacionValor"
+          placeholder="Calificación"
+          min="0"
+          max="10"
+          step="0.1">
+
+        <input
+          type="text"
+          id="calificacionCiclo"
+          placeholder="Ciclo escolar">
+
+      </div>
+
+      <br>
+
+      <button onclick="guardarCalificacionFrontend()">
+        Guardar calificación
+      </button>
+
+      <p id="mensajeCalificaciones"></p>
+
+    </div>
+  `;
+}
+
+// =====================================
+// CARGAR MATERIAS SEGÚN GRADO
+// =====================================
+
+function cargarMateriasCalificacion(){
+
+  const grado =
+    document.getElementById(
+      'calificacionGrado'
+    ).value;
+
+  const selectMateria =
+    document.getElementById(
+      'calificacionMateria'
+    );
+
+  selectMateria.innerHTML =
+    '<option value="">Selecciona materia</option>';
+
+  let materias = [];
+
+  if(grado === 'Primero'){
+
+    materias = [
+      'Español',
+      'Inglés',
+      'Artes',
+      'Matemáticas',
+      'Biología',
+      'Tecnología',
+      'Geografía',
+      'Formación Cívica y Ética',
+      'Educación Física',
+      'Tutoría'
+    ];
+
+  }
+
+  if(grado === 'Segundo'){
+
+    materias = [
+      'Español',
+      'Inglés',
+      'Artes',
+      'Matemáticas',
+      'Física',
+      'Tecnología',
+      'Historia',
+      'Formación Cívica y Ética',
+      'Educación Física',
+      'Tutoría'
+    ];
+
+  }
+
+  if(grado === 'Tercero'){
+
+    materias = [
+      'Español',
+      'Inglés',
+      'Artes',
+      'Matemáticas',
+      'Química',
+      'Tecnología',
+      'Historia',
+      'Formación Cívica y Ética',
+      'Educación Física',
+      'Tutoría'
+    ];
+
+  }
+
+  materias.forEach(function(materia){
+
+    const option =
+      document.createElement('option');
+
+    option.value = materia;
+    option.textContent = materia;
+
+    selectMateria.appendChild(option);
+
+  });
+
 }
