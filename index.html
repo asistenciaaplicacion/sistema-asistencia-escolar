@@ -410,25 +410,27 @@
       <div class="buscador-individual">
 
         <input
-          type="text"
-          id="busquedaIndividual"
-          placeholder="Buscar por nombre, UID o grupo">
+  type="text"
+  id="busquedaIndividual"
+  placeholder="Buscar por nombre, UID o grupo">
 
-        <button onclick="buscarReporteIndividual()">
-          Buscar alumno
-        </button>
+<input
+  type="date"
+  id="fechaInicioIndividual">
+
+<input
+  type="date"
+  id="fechaFinIndividual">
+
+<button onclick="buscarReporteIndividual()">
+  Buscar alumno
+</button>
 
         <button onclick="limpiarReporteIndividual()">
           Limpiar
         </button>
 
-        <button
-          onclick="generarPDFIndividual()"
-          class="btn-pdf-individual">
-          Generar PDF individual
-        </button>
-
-      </div>
+        </div>
 
       <div id="resultadoReporteIndividual"></div>
 
@@ -526,9 +528,6 @@
       <div id="resultadoHistorialPDF"></div>
 
     </div>
-<!-- ===============</div>====================== -->
-    <!-- ===========</div>========================== -->
- 
 
     <!-- ===================================== -->
     <!-- ADMINISTRACIÓN ACADÉMICA -->
@@ -547,6 +546,10 @@
 
         <button onclick="mostrarModuloAcademico('reportes')">
           Libro de reportes
+        </button>
+
+        <button onclick="mostrarModuloAcademico('citatorios')">
+          Citatorios
         </button>
 
         <button onclick="mostrarModuloAcademico('bitacora')">
