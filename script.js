@@ -1,12 +1,13 @@
 const API =
-'https://script.google.com/macros/s/AKfycbxoriJaFRurp6OS9Ztd6HMV0WbV1zjU8Gnoo3icrPEpdwhSVPJB1t4rSD7OwlE3X4Qb/exec';
+'https://script.google.com/macros/s/AKfycbxVx0rPUqimgjbWIQpHwArZ0_hWbBa9lHuDwraMqMHspgCXFHPnIQb8kQ05zm4EHben/exec';
 
+let usuarioActual = '';
+let materiasDocente = [];
 let gruposPermitidos = [];
 
 let graficaAsistencia = null;
 let graficaGrupos = null;
 let tipoHistorialPDF = 'GRUPAL';
-
 
 // =====================================
 // LOADER GLOBAL
@@ -95,6 +96,9 @@ async function iniciarSesion(){
         Array.isArray(datos.grupos)
         ? datos.grupos
         : [];
+
+      usuarioActual = usuario;
+      await cargarMateriasDocente();
 
       mostrarSistema(datos);
 
@@ -5293,102 +5297,88 @@ function mostrarModuloCalificaciones(){
   const contenedor =
     document.getElementById('contenedorModuloAcademico');
 
+  let opciones = '';
+
+  materiasDocente.forEach(function(item, index){
+
+    opciones += `
+      <option value="${index}">
+        ${item.materia} - ${item.grado} ${item.grupo}
+      </option>
+    `;
+
+  });
+
   contenedor.innerHTML = `
     <div class="form-admin">
 
-      <h3>
-        Captura de calificaciones
-      </h3>
+      <h3>Captura masiva de calificaciones</h3>
 
       <div class="grid-admin">
 
-        <input
-          type="text"
-          id="calificacionUID"
-          placeholder="UID del alumno">
-
-        <input
-          type="text"
-          id="calificacionAlumno"
-          placeholder="Nombre del alumno">
-
-        <select
-          id="calificacionGrado"
-          onchange="cargarMateriasCalificacion()">
-
-          <option value="">
-            Selecciona grado
-          </option>
-
-          <option value="Primero">
-            Primero
-          </option>
-
-          <option value="Segundo">
-            Segundo
-          </option>
-
-          <option value="Tercero">
-            Tercero
-          </option>
-
-        </select>
-
-        <input
-          type="text"
-          id="calificacionGrupo"
-          placeholder="Grupo">
-
-        <select id="calificacionMateria">
-
-          <option value="">
-            Selecciona materia
-          </option>
-
+        <select id="selectorMateriaDocente">
+          <option value="">Selecciona materia y grupo</option>
+          ${opciones}
         </select>
 
         <select id="calificacionPeriodo">
-
-          <option value="">
-            Selecciona periodo
-          </option>
-
-          <option value="1er Periodo">
-            1er Periodo
-          </option>
-
-          <option value="2do Periodo">
-            2do Periodo
-          </option>
-
-          <option value="3er Periodo">
-            3er Periodo
-          </option>
-
+          <option value="">Selecciona periodo</option>
+          <option value="1er Periodo">1er Periodo</option>
+          <option value="2do Periodo">2do Periodo</option>
+          <option value="3er Periodo">3er Periodo</option>
         </select>
-
-        <input
-          type="number"
-          id="calificacionValor"
-          placeholder="Calificación"
-          min="0"
-          max="10"
-          step="0.1">
 
         <input
           type="text"
           id="calificacionCiclo"
-          placeholder="Ciclo escolar">
+          placeholder="Ciclo escolar: 2025-2026">
 
       </div>
 
       <br>
 
-      <button onclick="guardarCalificacionFrontend()">
-        Guardar calificación
+      <button onclick="generarTablaCalificaciones()">
+        Generar lista de alumnos
       </button>
 
+      <button onclick="consultarListaCalificaciones()">
+        Consultar lista guardada
+      </button>
+
+      <button onclick="descargarPlantillaCalificaciones()">
+        Descargar plantilla XLSX
+      </button>
+
+      <button onclick="prepararImportacionXLSX()">
+        Importar XLSX
+      </button>
+
+      <button onclick="consultarResumenAcademico()">
+        Ver resumen académico
+      </button>
+
+      <button onclick="verTopAlumnosAcademico()">
+        Top alumnos
+      </button>
+
+      <button onclick="compararGruposAcademicosFrontend()">
+        Comparar grupos
+      </button>
+
+      <button onclick="verRankingGruposAcademico()">
+        Ranking de grupos
+      </button>
+
+      <input
+        type="file"
+        id="archivoXLSXCalificaciones"
+        accept=".xlsx,.xls"
+        style="display:none"
+        onchange="procesarArchivoXLSXCalificaciones(event)">
+
       <p id="mensajeCalificaciones"></p>
+
+      <div id="tablaCapturaCalificaciones"></div>
 
     </div>
   `;
@@ -5478,4 +5468,1784 @@ function cargarMateriasCalificacion(){
 
   });
 
+}
+
+// =====================================
+// CARGAR MATERIAS DEL DOCENTE
+// =====================================
+
+async function cargarMateriasDocente(){
+
+  try{
+
+    const respuesta = await fetch(
+      API +
+      '?accion=obtenerMateriasDocente' +
+      '&usuario=' + encodeURIComponent(usuarioActual)
+    );
+
+    const data = await respuesta.json();
+
+    if(data.ok){
+
+      materiasDocente = data.datos;
+
+      console.log(
+        'Materias del docente:',
+        materiasDocente
+      );
+
+    }
+
+  }catch(error){
+
+    console.error(
+      'Error cargando materias:',
+      error
+    );
+
+  }
+
+}
+
+// =====================================
+// GENERAR TABLA DE CALIFICACIONES
+// =====================================
+
+async function generarTablaCalificaciones(){
+
+  const selector =
+    document.getElementById('selectorMateriaDocente');
+
+  const periodo =
+    document.getElementById('calificacionPeriodo').value;
+
+  const tabla =
+    document.getElementById('tablaCapturaCalificaciones');
+
+  const mensaje =
+    document.getElementById('mensajeCalificaciones');
+
+  const indice =
+    selector.value;
+
+  if(indice === ''){
+
+    mensaje.textContent =
+      'Selecciona una materia y grupo.';
+
+    return;
+  }
+
+  if(periodo === ''){
+
+    mensaje.textContent =
+      'Selecciona un periodo.';
+
+    return;
+  }
+
+  const asignacion =
+    materiasDocente[indice];
+
+  mostrarLoader(
+    'Cargando alumnos...'
+  );
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=obtenerAlumnosGrupoCalificaciones' +
+        '&grado=' + encodeURIComponent(asignacion.grado) +
+        '&grupo=' + encodeURIComponent(asignacion.grupo)
+      );
+
+    const data =
+      await respuesta.json();
+
+    if(!data.ok){
+
+      mensaje.textContent =
+        data.mensaje || 'No se pudieron cargar alumnos.';
+
+      return;
+    }
+
+    if(data.datos.length === 0){
+
+      tabla.innerHTML =
+        '<p>No hay alumnos en este grupo.</p>';
+
+      return;
+    }
+
+    let html = `
+      <br>
+      <h4>
+        ${asignacion.materia} - ${asignacion.grado} ${asignacion.grupo}
+      </h4>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Alumno</th>
+            <th>Calificación</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    data.datos.forEach(function(alumno){
+
+      html += `
+        <tr>
+          <td>
+            ${alumno.alumno}
+          </td>
+          <td>
+            <input
+              type="text"
+              inputmode="decimal"
+              class="input-calificacion"
+              data-uid="${alumno.uid}"
+              data-alumno="${alumno.alumno}"
+              data-grado="${alumno.grado}"
+              data-grupo="${alumno.grupo}"
+              placeholder="Ej. 8.5">
+          </td>
+        </tr>
+      `;
+
+    });
+
+    html += `
+        </tbody>
+      </table>
+
+      <br>
+
+      <button onclick="guardarCalificacionesGrupo()">
+        Guardar calificaciones del grupo
+      </button>
+    `;
+
+    tabla.innerHTML = html;
+
+    mensaje.textContent =
+      'Lista generada correctamente.';
+
+  }catch(error){
+
+    console.error(error);
+
+    mensaje.textContent =
+      'Error al cargar alumnos.';
+
+  }finally{
+
+    ocultarLoader();
+  }
+
+}
+
+// =====================================
+// GUARDAR CALIFICACIONES DEL GRUPO
+// =====================================
+
+async function guardarCalificacionesGrupo(){
+
+  const selector =
+    document.getElementById('selectorMateriaDocente');
+
+  const periodo =
+    document.getElementById('calificacionPeriodo').value;
+
+  const mensaje =
+    document.getElementById('mensajeCalificaciones');
+
+  const indice =
+    selector.value;
+
+  if(indice === ''){
+
+    mensaje.textContent =
+      'Selecciona una materia y grupo.';
+
+    return;
+  }
+
+  if(periodo === ''){
+
+    mensaje.textContent =
+      'Selecciona un periodo.';
+
+    return;
+  }
+
+  const asignacion =
+    materiasDocente[indice];
+
+  const inputs =
+    document.querySelectorAll('.input-calificacion');
+
+  let guardadas = 0;
+
+  mostrarLoader(
+    'Guardando calificaciones...'
+  );
+
+  try{
+
+    for(const input of inputs){
+
+      const calificacion =
+        input.value.trim();
+
+      if(calificacion === ''){
+        continue;
+      }
+
+      const numero =
+        Number(calificacion);
+
+      if(isNaN(numero) || numero < 0 || numero > 10){
+
+        mensaje.textContent =
+          'Hay una calificación inválida. Usa valores de 0 a 10.';
+
+        ocultarLoader();
+        return;
+      }
+
+      const respuesta =
+        await fetch(
+          API +
+          '?accion=guardarCalificacion' +
+          '&uid=' + encodeURIComponent(input.dataset.uid) +
+          '&alumno=' + encodeURIComponent(input.dataset.alumno) +
+          '&grado=' + encodeURIComponent(input.dataset.grado) +
+          '&grupo=' + encodeURIComponent(input.dataset.grupo) +
+          '&materia=' + encodeURIComponent(asignacion.materia) +
+          '&periodo=' + encodeURIComponent(periodo) +
+          '&calificacion=' + encodeURIComponent(calificacion) +
+          '&cicloEscolar=' + encodeURIComponent('ACTUAL') +
+          '&usuario=' + encodeURIComponent(usuarioActual)
+        );
+
+      const data =
+        await respuesta.json();
+
+      if(data.ok){
+        guardadas++;
+      }
+
+    }
+
+    mensaje.textContent =
+      'Calificaciones guardadas: ' + guardadas;
+
+  }catch(error){
+
+    console.error(error);
+
+    mensaje.textContent =
+      'Error al guardar calificaciones.';
+
+  }finally{
+
+    ocultarLoader();
+  }
+
+}
+
+// =====================================
+// GUARDAR / ACTUALIZAR CALIFICACIÓN
+// =====================================
+
+function guardarCalificacion(e){
+
+  asegurarEncabezadosCalificaciones();
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var hoja = ss.getSheetByName('CALIFICACIONES');
+
+  var uid = String(e.parameter.uid || '').trim();
+  var alumno = String(e.parameter.alumno || '').trim();
+  var grado = String(e.parameter.grado || '').trim();
+  var grupo = String(e.parameter.grupo || '').trim();
+  var materia = String(e.parameter.materia || '').trim();
+  var periodo = String(e.parameter.periodo || '').trim();
+  var calificacion = String(e.parameter.calificacion || '').trim();
+  var cicloEscolar = String(e.parameter.cicloEscolar || 'ACTUAL').trim();
+
+  if (
+    uid === '' ||
+    alumno === '' ||
+    grado === '' ||
+    grupo === '' ||
+    materia === '' ||
+    periodo === '' ||
+    calificacion === ''
+  ) {
+    return responderJSON({
+      ok: false,
+      mensaje: 'Faltan datos para guardar la calificación.'
+    });
+  }
+
+  var datos = hoja.getDataRange().getValues();
+
+  for (var i = 1; i < datos.length; i++) {
+
+    var uidFila = String(datos[i][0]).trim();
+    var materiaFila = String(datos[i][4]).trim();
+    var periodoFila = String(datos[i][5]).trim();
+
+    if (
+      uidFila === uid &&
+      materiaFila === materia &&
+      periodoFila === periodo
+    ) {
+
+      hoja.getRange(i + 1, 2).setValue(alumno);
+      hoja.getRange(i + 1, 3).setValue(grado);
+      hoja.getRange(i + 1, 4).setValue(grupo);
+      hoja.getRange(i + 1, 7).setValue(calificacion);
+      hoja.getRange(i + 1, 8).setValue(cicloEscolar);
+      hoja.getRange(i + 1, 9).setValue(new Date());
+
+      return responderJSON({
+        ok: true,
+        actualizado: true,
+        mensaje: 'Calificación actualizada correctamente.'
+      });
+
+    }
+
+  }
+
+  hoja.appendRow([
+    uid,
+    alumno,
+    grado,
+    grupo,
+    materia,
+    periodo,
+    calificacion,
+    cicloEscolar,
+    new Date()
+  ]);
+
+  return responderJSON({
+    ok: true,
+    actualizado: false,
+    mensaje: 'Calificación guardada correctamente.'
+  });
+}
+
+// =====================================
+// CONSULTAR LISTA DE CALIFICACIONES
+// =====================================
+
+async function consultarListaCalificaciones(){
+
+  const selector =
+    document.getElementById('selectorMateriaDocente');
+
+  const periodo =
+    document.getElementById('calificacionPeriodo').value;
+
+  const tabla =
+    document.getElementById('tablaCapturaCalificaciones');
+
+  const mensaje =
+    document.getElementById('mensajeCalificaciones');
+
+  const indice =
+    selector.value;
+
+  if(indice === ''){
+
+    mensaje.textContent =
+      'Selecciona una materia y grupo.';
+
+    return;
+  }
+
+  if(periodo === ''){
+
+    mensaje.textContent =
+      'Selecciona un periodo.';
+
+    return;
+  }
+
+  const asignacion =
+    materiasDocente[indice];
+
+  mostrarLoader(
+    'Consultando lista guardada...'
+  );
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=obtenerListaCalificaciones' +
+        '&materia=' + encodeURIComponent(asignacion.materia) +
+        '&grado=' + encodeURIComponent(asignacion.grado) +
+        '&grupo=' + encodeURIComponent(asignacion.grupo) +
+        '&periodo=' + encodeURIComponent(periodo)
+      );
+
+    const data =
+      await respuesta.json();
+
+    if(!data.ok){
+
+      mensaje.textContent =
+        data.mensaje || 'No se pudo consultar la lista.';
+
+      return;
+    }
+
+    if(data.datos.length === 0){
+
+      tabla.innerHTML =
+        '<p>No hay calificaciones guardadas para esta selección.</p>';
+
+      return;
+    }
+
+    let html = `
+      <div id="listaCalificacionesImprimir">
+
+  <div class="info-lista-calificaciones">
+    <p>
+      <strong>Materia:</strong> ${asignacion.materia}<br>
+      <strong>Grado y grupo:</strong> ${asignacion.grado} ${asignacion.grupo}<br>
+      <strong>Periodo:</strong> ${periodo}<br>
+      <strong>Docente:</strong> ${asignacion.docente || usuarioActual}<br>
+      <strong>Fecha de emisión:</strong> ${new Date().toLocaleDateString('es-MX')}
+    </p>
+  </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>Alumno</th>
+              <th>Calificación</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    data.datos.forEach(function(item, index){
+
+      html += `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${item.alumno}</td>
+          <td>${item.calificacion}</td>
+        </tr>
+      `;
+
+    });
+
+    html += `
+          </tbody>
+        </table>
+
+      </div>
+
+      <br>
+
+      <button onclick="generarPDFListaCalificaciones()">
+        Imprimir / Generar PDF
+      </button>
+    `;
+
+    tabla.innerHTML = html;
+
+    mensaje.textContent =
+      'Lista consultada correctamente.';
+
+  }catch(error){
+
+    console.error(error);
+
+    mensaje.textContent =
+      'Error al consultar la lista.';
+
+  }finally{
+
+    ocultarLoader();
+  }
+
+}
+
+function prepararImportacionXLSX(){
+  document.getElementById('archivoXLSXCalificaciones').click();
+}
+
+// =====================================
+// PROCESAR XLSX CALIFICACIONES
+// =====================================
+
+async function procesarArchivoXLSXCalificaciones(event){
+
+  const archivo =
+    event.target.files[0];
+
+  if(!archivo){
+    return;
+  }
+
+  const selector =
+    document.getElementById('selectorMateriaDocente');
+
+  const periodo =
+    document.getElementById('calificacionPeriodo').value;
+
+  const mensaje =
+    document.getElementById('mensajeCalificaciones');
+
+  const indice =
+    selector.value;
+
+  if(indice === ''){
+
+    mensaje.textContent =
+      'Selecciona materia y grupo antes de importar.';
+
+    return;
+  }
+
+  if(periodo === ''){
+
+    mensaje.textContent =
+      'Selecciona periodo antes de importar.';
+
+    return;
+  }
+
+  const asignacion =
+    materiasDocente[indice];
+
+  mostrarLoader(
+    'Procesando archivo Excel...'
+  );
+
+  try{
+
+    const reader =
+      new FileReader();
+
+    reader.onload = async function(e){
+
+      const data =
+        new Uint8Array(e.target.result);
+
+      const workbook =
+        XLSX.read(data, { type:'array' });
+
+      const hoja =
+        workbook.Sheets[
+          workbook.SheetNames[0]
+        ];
+
+      const filas =
+        XLSX.utils.sheet_to_json(hoja);
+
+      let procesadas = 0;
+      let errores = 0;
+
+      for(const fila of filas){
+
+        const uid =
+          String(fila.UID || '').trim();
+
+        const alumno =
+          String(fila.Alumno || '').trim();
+
+        const calificacion =
+          String(fila.Calificación || '').trim();
+
+        if(
+          uid === '' ||
+          alumno === '' ||
+          calificacion === ''
+        ){
+          errores++;
+          continue;
+        }
+
+        try{
+
+          const respuesta =
+            await fetch(
+              API +
+              '?accion=guardarCalificacion' +
+              '&uid=' + encodeURIComponent(uid) +
+              '&alumno=' + encodeURIComponent(alumno) +
+              '&grado=' + encodeURIComponent(asignacion.grado) +
+              '&grupo=' + encodeURIComponent(asignacion.grupo) +
+              '&materia=' + encodeURIComponent(asignacion.materia) +
+              '&periodo=' + encodeURIComponent(periodo) +
+              '&calificacion=' + encodeURIComponent(calificacion) +
+              '&cicloEscolar=' + encodeURIComponent('ACTUAL') +
+              '&usuario=' + encodeURIComponent(usuarioActual)
+            );
+
+          const resultado =
+            await respuesta.json();
+
+          if(resultado.ok){
+            procesadas++;
+          }else{
+            errores++;
+          }
+
+        }catch(error){
+
+          console.error(error);
+          errores++;
+
+        }
+
+      }
+
+      mensaje.textContent =
+        'Importación completada. ' +
+        'Procesadas: ' + procesadas +
+        ' | Errores: ' + errores;
+
+      ocultarLoader();
+
+    };
+
+    reader.readAsArrayBuffer(archivo);
+
+  }catch(error){
+
+    console.error(error);
+
+    mensaje.textContent =
+      'Error al procesar Excel.';
+
+    ocultarLoader();
+
+  }
+
+}
+
+// =====================================
+// DESCARGAR PLANTILLA XLSX CALIFICACIONES
+// =====================================
+
+async function descargarPlantillaCalificaciones(){
+
+  const selector =
+    document.getElementById('selectorMateriaDocente');
+
+  const mensaje =
+    document.getElementById('mensajeCalificaciones');
+
+  const indice =
+    selector.value;
+
+  if(indice === ''){
+
+    mensaje.textContent =
+      'Selecciona una materia y grupo.';
+
+    return;
+  }
+
+  const asignacion =
+    materiasDocente[indice];
+
+  mostrarLoader(
+    'Generando plantilla Excel...'
+  );
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=obtenerAlumnosGrupoCalificaciones' +
+        '&grado=' + encodeURIComponent(asignacion.grado) +
+        '&grupo=' + encodeURIComponent(asignacion.grupo)
+      );
+
+    const data =
+      await respuesta.json();
+
+    if(!data.ok || data.datos.length === 0){
+
+      mensaje.textContent =
+        'No hay alumnos para generar plantilla.';
+
+      return;
+    }
+
+    const filas =
+      data.datos.map(function(alumno){
+
+        return {
+          UID: alumno.uid,
+          Alumno: alumno.alumno,
+          Calificación: ''
+        };
+
+      });
+
+    const hoja =
+      XLSX.utils.json_to_sheet(filas);
+
+    const libro =
+      XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+      libro,
+      hoja,
+      'Calificaciones'
+    );
+
+    const nombreArchivo =
+      'Plantilla_' +
+      asignacion.materia.replaceAll(' ', '_') +
+      '_' +
+      asignacion.grado.replaceAll(' ', '_') +
+      '_' +
+      asignacion.grupo +
+      '.xlsx';
+
+    XLSX.writeFile(
+      libro,
+      nombreArchivo
+    );
+
+    mensaje.textContent =
+      'Plantilla descargada correctamente.';
+
+  }catch(error){
+
+    console.error(error);
+
+    mensaje.textContent =
+      'Error al generar plantilla.';
+
+  }finally{
+
+    ocultarLoader();
+  }
+
+}
+
+// =====================================
+// GENERAR PDF LISTA DE CALIFICACIONES
+// MÉTODO SEGURO
+// =====================================
+
+// =====================================
+// IMPRIMIR / GENERAR PDF LISTA CALIFICACIONES
+// FORMATO PAGINADO
+// =====================================
+
+function generarPDFListaCalificaciones(){
+
+  const contenido =
+    document.getElementById('listaCalificacionesImprimir');
+
+  if(!contenido){
+    alert('Primero consulta una lista guardada.');
+    return;
+  }
+
+  const info =
+    contenido.querySelector('.info-lista-calificaciones');
+
+  const filas =
+    Array.from(
+      contenido.querySelectorAll('tbody tr')
+    );
+
+  if(filas.length === 0){
+    alert('No hay alumnos en la lista.');
+    return;
+  }
+
+  const textoInfo =
+    info ? info.innerText : '';
+
+  const docenteMatch =
+    textoInfo.match(/Docente:\s*(.*)/);
+
+  const docente =
+    docenteMatch
+    ? docenteMatch[1].trim()
+    : 'Docente';
+
+  const calificaciones =
+    filas.map(function(fila){
+
+      const celdas =
+        fila.querySelectorAll('td');
+
+      return Number(celdas[2].innerText);
+
+    }).filter(function(valor){
+      return !isNaN(valor);
+    });
+
+  const total =
+    calificaciones.length;
+
+  const suma =
+    calificaciones.reduce(function(a, b){
+      return a + b;
+    }, 0);
+
+  const promedio =
+    total > 0
+    ? (suma / total).toFixed(2)
+    : '0.00';
+
+  const aprobados =
+    calificaciones.filter(function(c){
+      return c >= 6;
+    }).length;
+
+  const reprobados =
+    calificaciones.filter(function(c){
+      return c < 6;
+    }).length;
+
+  const filasPorPagina = 25;
+
+  const paginas = [];
+
+  for(
+    let i = 0;
+    i < filas.length;
+    i += filasPorPagina
+  ){
+    paginas.push(
+      filas.slice(i, i + filasPorPagina)
+    );
+  }
+
+  let htmlPaginas = '';
+
+  paginas.forEach(function(grupoFilas, indicePagina){
+
+    const esUltima =
+      indicePagina === paginas.length - 1;
+
+    let filasHTML = '';
+
+    grupoFilas.forEach(function(fila){
+      filasHTML += fila.outerHTML;
+    });
+
+    htmlPaginas += `
+      <div class="pagina">
+
+        <div class="encabezado-documento">
+
+          <img
+            src="logo.png"
+            class="logo-documento">
+
+          <div class="titulo-documento">
+            <h1>SISTEMA DE ASISTENCIA ESCOLAR</h1>
+            <h2>Lista de calificaciones</h2>
+          </div>
+
+        </div>
+
+        <div class="datos-documento">
+          ${info ? info.innerHTML : ''}
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>Alumno</th>
+              <th>Calificación</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            ${filasHTML}
+          </tbody>
+        </table>
+
+        ${
+          esUltima
+          ? `
+            <div class="resumen-final">
+              <div>
+                <strong>Promedio grupal:</strong> ${promedio}
+              </div>
+
+              <div>
+                <strong>Aprobados:</strong> ${aprobados}
+              </div>
+
+              <div>
+                <strong>Reprobados:</strong> ${reprobados}
+              </div>
+            </div>
+
+            <div class="firma-docente">
+              <div class="linea-firma"></div>
+              <div>${docente}</div>
+              <div>Docente</div>
+            </div>
+          `
+          : ''
+        }
+
+      </div>
+    `;
+
+  });
+
+  const ventana =
+    window.open('', '_blank');
+
+  ventana.document.write(`
+    <html>
+      <head>
+        <title>Lista de calificaciones</title>
+
+        <style>
+
+          @page {
+            size: letter portrait;
+            margin: 12mm;
+          }
+
+          body {
+            margin: 0;
+            background: white;
+            color: black;
+            font-family: Arial, sans-serif;
+          }
+
+          .pagina {
+            page-break-after: always;
+            padding: 10mm 12mm;
+            box-sizing: border-box;
+          }
+
+          .pagina:last-child {
+            page-break-after: auto;
+          }
+
+          .encabezado-documento {
+            position: relative;
+            min-height: 72px;
+            margin-bottom: 8px;
+          }
+
+          .logo-documento {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 62px;
+            height: 62px;
+            object-fit: contain;
+          }
+
+          .titulo-documento {
+            text-align: center;
+            padding-top: 5px;
+          }
+
+          .titulo-documento h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
+          }
+
+          .titulo-documento h2 {
+            margin: 6px 0 0 0;
+            font-size: 17px;
+            font-weight: bold;
+          }
+
+          .datos-documento {
+            margin-top: 4px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            line-height: 1.25;
+          }
+
+          .datos-documento p {
+            margin: 0;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+
+          th, td {
+            border: 1px solid black;
+            padding: 5px;
+            font-size: 12px;
+          }
+
+          th {
+            font-weight: bold;
+            text-align: center;
+          }
+
+          td:nth-child(1),
+          td:nth-child(3) {
+            text-align: center;
+          }
+
+          .resumen-final {
+            margin-top: 28px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            border: 1px solid black;
+          }
+
+          .resumen-final div {
+            padding: 10px;
+            text-align: center;
+            font-size: 13px;
+            border-right: 1px solid black;
+          }
+
+          .resumen-final div:last-child {
+            border-right: none;
+          }
+
+          .firma-docente {
+            margin-top: 60px;
+            text-align: center;
+            font-size: 13px;
+          }
+
+          .linea-firma {
+            width: 320px;
+            border-top: 1px solid black;
+            margin: 0 auto 8px auto;
+          }
+
+        </style>
+      </head>
+
+      <body>
+        ${htmlPaginas}
+
+        <script>
+          window.onload = function(){
+            window.print();
+          }
+        <\/script>
+      </body>
+    </html>
+  `);
+
+  ventana.document.close();
+
+}
+
+// =====================================
+// CONSULTAR RESUMEN ACADÉMICO
+// =====================================
+
+async function consultarResumenAcademico(){
+
+  const selector =
+    document.getElementById('selectorMateriaDocente');
+
+  const periodo =
+    document.getElementById('calificacionPeriodo').value;
+
+  const contenedor =
+    document.getElementById('tablaCapturaCalificaciones');
+
+  const mensaje =
+    document.getElementById('mensajeCalificaciones');
+
+  const indice =
+    selector.value;
+
+  if(indice === ''){
+
+    mensaje.textContent =
+      'Selecciona una materia y grupo.';
+
+    return;
+  }
+
+  if(periodo === ''){
+
+    mensaje.textContent =
+      'Selecciona un periodo.';
+
+    return;
+  }
+
+  const asignacion =
+    materiasDocente[indice];
+
+  mostrarLoader(
+    'Consultando resumen académico...'
+  );
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=obtenerResumenAcademico' +
+        '&materia=' + encodeURIComponent(asignacion.materia) +
+        '&grado=' + encodeURIComponent(asignacion.grado) +
+        '&grupo=' + encodeURIComponent(asignacion.grupo) +
+        '&periodo=' + encodeURIComponent(periodo)
+      );
+
+    const data =
+      await respuesta.json();
+
+    if(!data.ok){
+
+      mensaje.textContent =
+        data.mensaje || 'No se pudo obtener resumen.';
+
+      return;
+    }
+
+    const r = data.resumen;
+
+    contenedor.innerHTML = `
+      <div class="dashboard no-pdf">
+
+        <div class="card">
+          <h3>Total alumnos</h3>
+          <p>${r.total}</p>
+        </div>
+
+        <div class="card">
+          <h3>Promedio</h3>
+          <p>${r.promedio}</p>
+        </div>
+
+        <div class="card">
+          <h3>Aprobados</h3>
+          <p>${r.aprobados}</p>
+        </div>
+
+        <div class="card">
+          <h3>Reprobados</h3>
+          <p>${r.reprobados}</p>
+        </div>
+
+        <div class="card">
+        <h3>Mayor calificación</h3>
+        <p>${r.mayor ?? '-'}</p>
+        <small>${(r.alumnosMayor || []).join('<br>')}</small>
+      </div>
+
+      <div class="card">
+  <h3>Menor calificación</h3>
+  <p>${r.menor ?? '-'}</p>
+  <small>${(r.alumnosMenor || []).join('<br>')}</small>
+</div>
+
+</div>
+
+
+
+<br>
+
+<div class="card">
+  <h3>Alertas académicas</h3>
+  <div id="alertasAcademicas"></div>
+</div>
+
+<br>
+
+<div class="card">
+  <h3>Gráfica de aprobación</h3>
+
+  <canvas id="graficaResumenAcademico"></canvas>
+  <br>
+
+<h3>Distribución de calificaciones</h3>
+<canvas id="graficaDistribucionCalificaciones"></canvas>
+</div>
+
+`;
+
+const canvas =
+  document.getElementById('graficaResumenAcademico');
+
+new Chart(canvas, {
+  type: 'bar',
+  data: {
+    labels: ['Aprobados', 'Reprobados'],
+    datasets: [{
+      label: 'Alumnos',
+      data: [r.aprobados, r.reprobados]
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: false
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          precision: 0
+        }
+      }
+    }
+  }
+});
+
+const canvasDistribucion =
+  document.getElementById('graficaDistribucionCalificaciones');
+
+const etiquetasDistribucion =
+  Object.keys(r.distribucion).reverse();
+
+const valoresDistribucion =
+  etiquetasDistribucion.map(function(clave){
+    return r.distribucion[clave];
+  });
+
+new Chart(canvasDistribucion, {
+  type: 'bar',
+  data: {
+    labels: etiquetasDistribucion,
+    datasets: [{
+      label: 'Alumnos',
+      data: valoresDistribucion
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: false
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          precision: 0
+        }
+      }
+    }
+  }
+});
+
+const contenedorAlertas =
+  document.getElementById('alertasAcademicas');
+
+if(r.alertas && r.alertas.length > 0){
+
+  contenedorAlertas.innerHTML =
+    r.alertas.map(function(alerta){
+      return '<p>⚠ ' + alerta + '</p>';
+    }).join('');
+
+}else{
+
+  contenedorAlertas.innerHTML =
+    '<p>✅ Sin alertas académicas.</p>';
+
+}
+
+    mensaje.textContent =
+      'Resumen académico generado correctamente.';
+
+  }catch(error){
+
+    console.error(error);
+
+    mensaje.textContent =
+      'Error al consultar resumen académico.';
+
+  }finally{
+
+    ocultarLoader();
+  }
+
+}
+
+// =====================================
+// COMPARAR GRUPOS ACADÉMICOS
+// =====================================
+
+async function compararGruposAcademicosFrontend(){
+
+  const selector =
+    document.getElementById('selectorMateriaDocente');
+
+  const periodo =
+    document.getElementById('calificacionPeriodo').value;
+
+  const contenedor =
+    document.getElementById('tablaCapturaCalificaciones');
+
+  const mensaje =
+    document.getElementById('mensajeCalificaciones');
+
+  const indice =
+    selector.value;
+
+  if(indice === ''){
+    mensaje.textContent =
+      'Selecciona una materia.';
+    return;
+  }
+
+  if(periodo === ''){
+    mensaje.textContent =
+      'Selecciona un periodo.';
+    return;
+  }
+
+  const asignacion =
+    materiasDocente[indice];
+
+  mostrarLoader(
+    'Comparando grupos...'
+  );
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=compararGruposAcademicos' +
+        '&materia=' + encodeURIComponent(asignacion.materia) +
+        '&periodo=' + encodeURIComponent(periodo)
+      );
+
+    const data =
+      await respuesta.json();
+
+    if(!data.ok || data.datos.length === 0){
+
+      contenedor.innerHTML =
+        '<p>No hay datos para comparar.</p>';
+
+      return;
+    }
+
+    let html = `
+      <h3>Comparación de grupos</h3>
+
+      <p>
+        <strong>Materia:</strong> ${asignacion.materia}<br>
+        <strong>Periodo:</strong> ${periodo}
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Grupo</th>
+            <th>Total</th>
+            <th>Promedio</th>
+            <th>Aprobados</th>
+            <th>Reprobados</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    data.datos.forEach(function(item){
+
+      html += `
+        <tr>
+          <td>${item.grupo}</td>
+          <td>${item.total}</td>
+          <td>${item.promedio}</td>
+          <td>${item.aprobados}</td>
+          <td>${item.reprobados}</td>
+        </tr>
+      `;
+
+    });
+
+    html += `
+        </tbody>
+      </table>
+
+      <br>
+
+      <div class="card">
+        <h3>Promedio por grupo</h3>
+        <canvas id="graficaComparacionGrupos"></canvas>
+      </div>
+    `;
+
+    contenedor.innerHTML = html;
+
+    const canvas =
+      document.getElementById('graficaComparacionGrupos');
+
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.datos.map(item => item.grupo),
+        datasets: [{
+          label: 'Promedio',
+          data: data.datos.map(item => item.promedio)
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 10
+          }
+        }
+      }
+    });
+
+    mensaje.textContent =
+      'Comparación generada correctamente.';
+
+  }catch(error){
+
+    console.error(error);
+
+    mensaje.textContent =
+      'Error al comparar grupos.';
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
+
+// =====================================
+// VER TOP ALUMNOS ACADÉMICO
+// =====================================
+
+async function verTopAlumnosAcademico(){
+
+  const selector =
+    document.getElementById('selectorMateriaDocente');
+
+  const periodo =
+    document.getElementById('calificacionPeriodo').value;
+
+  const contenedor =
+    document.getElementById('tablaCapturaCalificaciones');
+
+  const mensaje =
+    document.getElementById('mensajeCalificaciones');
+
+  const indice =
+    selector.value;
+
+  if(indice === ''){
+    mensaje.textContent = 'Selecciona una materia.';
+    return;
+  }
+
+  if(periodo === ''){
+    mensaje.textContent = 'Selecciona un periodo.';
+    return;
+  }
+
+  const asignacion =
+    materiasDocente[indice];
+
+  mostrarLoader('Generando top alumnos...');
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=obtenerTopAlumnosAcademico' +
+        '&materia=' + encodeURIComponent(asignacion.materia) +
+        '&periodo=' + encodeURIComponent(periodo)
+      );
+
+    const data =
+      await respuesta.json();
+
+    if(!data.ok || data.datos.length === 0){
+      contenedor.innerHTML = '<p>No hay datos para mostrar.</p>';
+      return;
+    }
+
+    const top =
+      data.datos.slice(0, 10);
+
+    let html = `
+      <h3>Top alumnos</h3>
+
+      <p>
+        <strong>Materia:</strong> ${asignacion.materia}<br>
+        <strong>Periodo:</strong> ${periodo}
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Lugar</th>
+            <th>Alumno</th>
+            <th>Grupo</th>
+            <th>Promedio</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    let lugarActual = 0;
+let promedioAnterior = null;
+
+top.forEach(function(item, index){
+
+  if(promedioAnterior === null || item.promedio !== promedioAnterior){
+    lugarActual = index + 1;
+    promedioAnterior = item.promedio;
+  }
+
+  html += `
+    <tr>
+      <td>${lugarActual}</td>
+      <td>${item.alumno}</td>
+      <td>${item.grado} ${item.grupo}</td>
+      <td>${item.promedio}</td>
+    </tr>
+  `;
+
+});
+
+    html += `
+        </tbody>
+      </table>
+
+      <br>
+
+      <div class="card">
+        <h3>Gráfica top alumnos</h3>
+        <canvas id="graficaTopAlumnos"></canvas>
+      </div>
+    `;
+
+    contenedor.innerHTML = html;
+
+    const canvas =
+      document.getElementById('graficaTopAlumnos');
+
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: top.map(item => item.alumno),
+        datasets: [{
+          label: 'Promedio',
+          data: top.map(item => item.promedio)
+        }]
+      },
+      options: {
+        responsive: true,
+        indexAxis: 'y',
+        scales: {
+          x: {
+            beginAtZero: true,
+            max: 10
+          }
+        }
+      }
+    });
+
+    mensaje.textContent =
+      'Top alumnos generado correctamente.';
+
+  }catch(error){
+
+    console.error(error);
+    mensaje.textContent =
+      'Error al generar top alumnos.';
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
+
+// =====================================
+// RANKING DE GRUPOS ACADÉMICO
+// =====================================
+
+async function verRankingGruposAcademico(){
+
+  const selector =
+    document.getElementById('selectorMateriaDocente');
+
+  const periodo =
+    document.getElementById('calificacionPeriodo').value;
+
+  const contenedor =
+    document.getElementById('tablaCapturaCalificaciones');
+
+  const mensaje =
+    document.getElementById('mensajeCalificaciones');
+
+  const indice =
+    selector.value;
+
+  if(indice === ''){
+    mensaje.textContent = 'Selecciona una materia.';
+    return;
+  }
+
+  if(periodo === ''){
+    mensaje.textContent = 'Selecciona un periodo.';
+    return;
+  }
+
+  const asignacion =
+    materiasDocente[indice];
+
+  mostrarLoader('Generando ranking de grupos...');
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=compararGruposAcademicos' +
+        '&materia=' + encodeURIComponent(asignacion.materia) +
+        '&periodo=' + encodeURIComponent(periodo)
+      );
+
+    const data =
+      await respuesta.json();
+
+    if(!data.ok || data.datos.length === 0){
+      contenedor.innerHTML = '<p>No hay datos para mostrar.</p>';
+      return;
+    }
+
+    const ranking =
+      data.datos.slice().sort(function(a, b){
+        return b.promedio - a.promedio;
+      });
+
+    let html = `
+      <h3>Ranking de grupos</h3>
+
+      <p>
+        <strong>Materia:</strong> ${asignacion.materia}<br>
+        <strong>Periodo:</strong> ${periodo}
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Lugar</th>
+            <th>Grupo</th>
+            <th>Promedio</th>
+            <th>Aprobados</th>
+            <th>Reprobados</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    let lugarActual = 0;
+    let promedioAnterior = null;
+
+    ranking.forEach(function(item, index){
+
+      if(promedioAnterior === null || item.promedio !== promedioAnterior){
+        lugarActual = index + 1;
+        promedioAnterior = item.promedio;
+      }
+
+      html += `
+        <tr>
+          <td>${lugarActual}</td>
+          <td>${item.grupo}</td>
+          <td>${item.promedio}</td>
+          <td>${item.aprobados}</td>
+          <td>${item.reprobados}</td>
+        </tr>
+      `;
+
+    });
+
+    html += `
+        </tbody>
+      </table>
+
+      <br>
+
+      <div class="card">
+        <h3>Gráfica ranking de grupos</h3>
+        <canvas id="graficaRankingGrupos"></canvas>
+      </div>
+    `;
+
+    contenedor.innerHTML = html;
+
+    const canvas =
+      document.getElementById('graficaRankingGrupos');
+
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: ranking.map(item => item.grupo),
+        datasets: [{
+          label: 'Promedio',
+          data: ranking.map(item => item.promedio)
+        }]
+      },
+      options: {
+        responsive: true,
+        indexAxis: 'y',
+        scales: {
+          x: {
+            beginAtZero: true,
+            max: 10
+          }
+        }
+      }
+    });
+
+    mensaje.textContent =
+      'Ranking de grupos generado correctamente.';
+
+  }catch(error){
+
+    console.error(error);
+    mensaje.textContent =
+      'Error al generar ranking de grupos.';
+
+  }finally{
+
+    ocultarLoader();
+  }
 }

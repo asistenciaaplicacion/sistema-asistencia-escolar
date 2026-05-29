@@ -1700,3 +1700,102 @@ REPORTE INDIVIDUAL ALUMNO
   color:#64748b;
   margin-top:4px;
 }
+
+.pase-salida-imprimible{
+  margin-top:24px;
+  background:white;
+  border:2px solid #1565c0;
+  border-radius:14px;
+  padding:20px;
+  color:#1f2937;
+}
+
+.pase-header{
+  display:flex;
+  gap:16px;
+  align-items:center;
+  border-bottom:3px solid #1565c0;
+  padding-bottom:12px;
+  margin-bottom:16px;
+}
+
+.pase-logo{
+  width:80px;
+  height:80px;
+  object-fit:contain;
+}
+
+.pase-header h2{
+  margin:0;
+  color:#1565c0;
+}
+
+.pase-header p{
+  margin:3px 0;
+}
+
+.pase-datos{
+  display:grid;
+  grid-template-columns:repeat(2, 1fr);
+  gap:8px 18px;
+  font-size:14px;
+}
+
+.pase-datos p{
+  margin:4px 0;
+}
+
+.pase-firmas{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:20px;
+  margin-top:34px;
+  text-align:center;
+}
+
+.linea-firma{
+  border-bottom:1px solid #1f2937;
+  height:36px;
+  margin-bottom:6px;
+}
+
+@media print{
+  .no-print,
+  button{
+    display:none !important;
+  }
+
+  body{
+    background:white !important;
+  }
+
+  .pase-salida-imprimible{
+    border:2px solid #1565c0;
+    box-shadow:none;
+    margin:0;
+  }
+}
+
+.acciones-pase{
+  display:flex;
+  gap:12px;
+  margin-top:20px;
+}
+
+.btn-cerrar-pase{
+  background:#dc2626;
+}
+
+.btn-cerrar-pase:hover{
+  background:#b91c1c;
+}
+
+.acciones-reporte-individual{
+  margin-top:24px;
+  text-align:center;
+}
+
+.acciones-reporte-individual .btn-pdf-individual{
+  padding:12px 22px;
+  font-weight:bold;
+}
