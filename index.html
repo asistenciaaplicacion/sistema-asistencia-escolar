@@ -229,9 +229,36 @@
           Editar / eliminar alumno
         </button>
 
+        <button onclick="mostrarBitacoraMovimientos()">
+          Historial de movimientos
+        </button>
+
+        <button onclick="mostrarConcentradoRiesgo()">
+          Alumnos en riesgo
+        </button>
+
+        <button onclick="enviarAlertasRiesgoAlto()">
+          Enviar alertas de riesgo alto
+        </button>
+
         <button onclick="toggleEstadisticasGlobales()">
           Estadísticas globales
         </button>
+
+        <button onclick="cargarDashboardInstitucional()">
+          Dashboard institucional
+        </button>
+
+        <button onclick="generarPDFDashboardInstitucional()">
+          PDF dashboard institucional
+        </button>
+
+        <button onclick="cargarAgendaInstitucional()">
+  Agenda institucional
+</button>
+<button onclick="cargarPanelAlertasPadres()">
+  Alertas a padres
+</button>
 
       </div>
 
@@ -381,9 +408,9 @@
 
         <div id="resultadoEstadisticasGlobales"></div>
 
-        <div
-          class="graficas"
-          id="contenedorGraficas">
+        <div id="resultadoDashboardInstitucional"></div>
+
+        <div class="graficas" id="contenedorGraficas">
 
           <canvas id="graficaAsistencia"></canvas>
 
@@ -394,6 +421,68 @@
       </div>
 
     </div>
+
+<!-- PANEL ALUMNOS EN RIESGO -->
+
+<div
+  id="panelRiesgo"
+  class="form-admin"
+  style="display:none;">
+
+  <h3>
+    Concentrado de alumnos en riesgo
+  </h3>
+
+  <button onclick="cargarConcentradoRiesgo()">
+    Actualizar concentrado
+  </button>
+
+  <button onclick="mostrarAlumnosCriticos()">
+    Alumnos críticos
+  </button>
+
+  <button onclick="generarPDFAlumnosCriticos()">
+    PDF alumnos críticos
+  </button>
+
+  <button onclick="mostrarPanelSeguimientoTutorial()">
+    Seguimiento tutorial
+  </button>
+
+  
+  <button onclick="ocultarPanelRiesgo()">
+    Cerrar
+  </button>
+
+  <br><br>
+
+  <div id="resultadoConcentradoRiesgo"></div>
+
+    <div
+  id="panelSeguimientoTutorial"
+  class="form-admin"
+  style="display:none;">
+
+  <h3>Seguimiento tutorial</h3>
+
+  <input
+    type="text"
+    id="buscarAlumnoSeguimiento"
+    placeholder="Buscar alumno por nombre o UID">
+
+  <button onclick="buscarAlumnoSeguimientoTutorial()">
+    Buscar
+  </button>
+
+  <button onclick="ocultarPanelSeguimientoTutorial()">
+    Cancelar
+  </button>
+
+  <div id="resultadoBusquedaSeguimiento"></div>
+
+</div>
+
+</div>
 
     <!-- ===================================== -->
     <!-- 4. REPORTE INDIVIDUAL ALUMNO -->

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal de Padres</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+<div class="portal-padres">
+
+  <div class="portal-card">
+
+    <img src="logo.png" class="logo-login">
+
+    <h1>Portal de Padres</h1>
+
+    <p>
+      Consulta la información escolar del alumno.
+    </p>
+
+    <input
+  type="text"
+  id="uidPadre"
+  placeholder="UID del alumno">
+
+<input
+  type="password"
+  id="passwordPadre"
+  placeholder="Contraseña">
+
+    <button onclick="buscarAlumnoPortalPadres()">
+      Consultar
+    </button>
+
+    <button onclick="mostrarRecuperarPasswordPadre()">
+  ¿Olvidaste tu contraseña?
+</button>
+
+    <div id="resultadoPortalPadres"></div>
+
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>

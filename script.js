@@ -1,5 +1,5 @@
 const API =
-'https://script.google.com/macros/s/AKfycbxVx0rPUqimgjbWIQpHwArZ0_hWbBa9lHuDwraMqMHspgCXFHPnIQb8kQ05zm4EHben/exec';
+'https://script.google.com/macros/s/AKfycbzqMqPIDV9-dWtHQpPBDs3cQi349bJzInkQbJZeAaEsf8zwD-8ty4qlVdqRt5G4GaGg/exec';
 
 let usuarioActual = '';
 let materiasDocente = [];
@@ -338,6 +338,7 @@ function mostrarTabla(datos){
 
   let totalAsistenciasGlobal = 0;
   let totalFaltasGlobal = 0;
+  let totalAlumnosActivos = 0;
 
   html += `
     <table>
@@ -347,7 +348,6 @@ function mostrarTabla(datos){
   `;
 
   datos.dias.forEach(dia => {
-
     html += `<th>${dia}</th>`;
   });
 
@@ -360,16 +360,36 @@ function mostrarTabla(datos){
 
   datos.alumnos.forEach((alumno,index)=>{
 
+    const esBaja =
+      alumno.includes('(BAJA)') ||
+      alumno.includes('(BAJA_ACADEMICA)') ||
+      alumno.includes('(BAJA_DEFINITIVA)');
+
+    if(!esBaja){
+      totalAlumnosActivos++;
+    }
+
     let asistencias = 0;
     let faltas = 0;
 
     html += `
-      <tr>
+      <tr class="${esBaja ? 'fila-baja' : ''}">
         <td>${index + 1}</td>
         <td class="nombre">${alumno}</td>
     `;
 
     datos.dias.forEach(dia => {
+
+      if(esBaja){
+
+        html += `
+          <td class="baja">
+            -
+          </td>
+        `;
+
+        return;
+      }
 
       let valor = 'F';
       let clase = 'falta';
@@ -415,6 +435,18 @@ function mostrarTabla(datos){
       `;
     });
 
+    if(esBaja){
+
+      html += `
+          <td class="asistencias">-</td>
+          <td class="faltas">-</td>
+          <td class="porcentaje">BAJA</td>
+        </tr>
+      `;
+
+      return;
+    }
+
     let total =
       asistencias + faltas;
 
@@ -436,7 +468,7 @@ function mostrarTabla(datos){
   document.getElementById('resultado').innerHTML = html;
 
   document.getElementById('totalAlumnos').textContent =
-    datos.alumnos.length;
+    totalAlumnosActivos;
 
   document.getElementById('totalAsistencias').textContent =
     totalAsistenciasGlobal;
@@ -889,14 +921,21 @@ function verificarSesion(){
 
 document.addEventListener('DOMContentLoaded', function(){
 
-  document.getElementById('sistema').style.display = 'none';
+  const sistema =
+    document.getElementById('sistema');
 
-  if(document.getElementById('panelAdmin')){
+  const panelAdmin =
+    document.getElementById('panelAdmin');
 
-    document.getElementById('panelAdmin').style.display = 'none';
+  if(sistema){
+    sistema.style.display = 'none';
+    verificarSesion();
   }
 
-  verificarSesion();
+  if(panelAdmin){
+    panelAdmin.style.display = 'none';
+  }
+
 });
 
 
@@ -1046,7 +1085,8 @@ async function guardarAlumno(){
         '&uid=' + encodeURIComponent(uid) +
         '&nombre=' + encodeURIComponent(nombre) +
         '&grado=' + encodeURIComponent(grado) +
-        '&grupo=' + encodeURIComponent(grupo)
+        '&grupo=' + encodeURIComponent(grupo) +
+        '&usuario=' + encodeURIComponent(usuarioActual)
       );
 
     const datos =
@@ -1150,13 +1190,55 @@ async function buscarAlumnoAdmin(){
             <option ${alumno.grupo=='C'?'selected':''}>C</option>
           </select>
 
+          <select id="estatus_${alumno.fila}">
+            <option ${alumno.estatus=='ACTIVO'?'selected':''}>ACTIVO</option>
+            <option ${alumno.estatus=='ALTA'?'selected':''}>ALTA</option>
+            <option ${alumno.estatus=='BAJA'?'selected':''}>BAJA</option>
+          </select>
+
+          <button onclick="actualizarEstatusAlumno('${alumno.uid}', ${alumno.fila})">
+            Actualizar estatus
+          </button>
+
           <button onclick="editarAlumno(${alumno.fila})">
             Guardar cambios
+          </button>
+
+          <button onclick="registrarBajaFormal('${alumno.uid}')">
+            Registrar baja formal
           </button>
 
           <button onclick="eliminarAlumno(${alumno.fila})">
             Eliminar
           </button>
+
+          <div class="bloque-tutor-admin">
+
+  <h4>Datos del tutor</h4>
+
+  <input
+    value="${alumno.nombreTutor || ''}"
+    id="nombreTutor_${alumno.uid}"
+    placeholder="Nombre del tutor">
+
+  <input
+    value="${alumno.telefonoTutor || ''}"
+    id="telefonoTutor_${alumno.uid}"
+    placeholder="Teléfono del tutor">
+
+  <input
+    value="${alumno.correoTutor || ''}"
+    id="correoTutor_${alumno.uid}"
+    placeholder="Correo del tutor">
+
+  <button onclick="actualizarDatosTutorAdmin('${alumno.uid}')">
+    Guardar tutor
+  </button>
+
+</div>
+
+
+
 
         </div>
       `;
@@ -2369,6 +2451,7 @@ async function cargarHistorialIndividual(uid){
     );
 
     mostrarHistorialIndividual(datos);
+
     await cargarReportesAlumnoIndividual(
   uid,
   datos.nombre
@@ -2388,10 +2471,15 @@ await cargarCitatoriosAlumnoIndividual(
   uid,
   datos.nombre
 );
-    mostrarMensajeSistema(
-      'Historial individual cargado.',
-      'exito'
-    );
+
+await cargarSeguimientoTutorialReporteIndividual(uid);
+
+await cargarCalificacionesReporteIndividual(uid);
+
+mostrarMensajeSistema(
+  'Historial individual cargado.',
+  'exito'
+);
 
   }catch(error){
 
@@ -2407,7 +2495,6 @@ await cargarCitatoriosAlumnoIndividual(
     ocultarLoader();
   }
 }
-
 
 
 function mostrarHistorialIndividual(datos){
@@ -2768,16 +2855,25 @@ function generarPDFIndividual(){
   }
 
   const tablaReportes =
-    obtenerTablaPorTitulo('Reportes escolares');
+  document.getElementById('tablaReportesIndividual');
 
-  const tablaJustificantes =
-    obtenerTablaPorTitulo('Justificantes escolares');
+const tablaJustificantes =
+  document.getElementById('tablaJustificantesIndividual');
 
-  const tablaPases =
-    obtenerTablaPorTitulo('Pases de salida');
+const tablaPases =
+  document.getElementById('tablaPasesIndividual');
 
-  const tablaCitatorios =
-    obtenerTablaPorTitulo('Citatorios escolares');
+const tablaCitatorios =
+  document.getElementById('tablaCitatoriosIndividual');
+
+  const tablaCalificaciones =
+  document.getElementById('tablaCalificacionesIndividual'); 
+  
+  const tablaSeguimientoTutorial =
+  document.getElementById('tablaSeguimientoTutorialIndividual');
+
+  const alertaIntegral =
+  document.querySelector('#resultadoReporteIndividual .alerta-riesgo');
 
   const htmlReportes =
     crearTarjetasDesdeTabla(
@@ -2790,6 +2886,44 @@ function generarPDFIndividual(){
         { titulo:'Acción tomada', indice:4 }
       ]
     );
+
+    let htmlCalificaciones = '';
+
+    let htmlAlertaIntegral = '';
+
+if(alertaIntegral){
+
+  const alertaClon =
+    alertaIntegral.cloneNode(true);
+
+  alertaClon.querySelectorAll('*').forEach(el => {
+    el.removeAttribute('style');
+  });
+
+  htmlAlertaIntegral =
+    alertaClon.outerHTML;
+
+}
+
+if(tablaCalificaciones){
+
+  const tablaClon =
+    tablaCalificaciones.cloneNode(true);
+
+  tablaClon.querySelectorAll('*').forEach(el => {
+    el.removeAttribute('style');
+    el.removeAttribute('class');
+  });
+
+  htmlCalificaciones =
+    tablaClon.outerHTML;
+
+}else{
+
+  htmlCalificaciones =
+    '<p style="font-size:12px;">Sin calificaciones registradas.</p>';
+
+}
 
   const htmlJustificantes =
     crearTarjetasDesdeTabla(
@@ -2832,6 +2966,18 @@ function generarPDFIndividual(){
         { titulo:'Seguimiento', indice:9 }
       ]
     );
+
+    const htmlSeguimientoTutorial =
+  crearTarjetasDesdeTabla(
+    tablaSeguimientoTutorial,
+    [
+      { titulo:'Fecha', indice:0 },
+      { titulo:'Responsable', indice:1 },
+      { titulo:'Acción', indice:2 },
+      { titulo:'Próxima revisión', indice:3 },
+      { titulo:'Seguimiento posterior', indice:4 }
+    ]
+  );
 
   const texto =
     contenedor.innerText;
@@ -2996,6 +3142,18 @@ function generarPDFIndividual(){
 
       <div id="tablaPDFIndividual"></div>
 
+      <h3>Alerta integral del alumno</h3>
+
+      <div id="alertaIntegralPDFIndividual">
+        ${htmlAlertaIntegral}
+      </div>
+
+      <h3>Calificaciones</h3>
+
+      <div id="calificacionesPDFIndividual">
+        ${htmlCalificaciones}
+      </div>
+
       <h3>Reportes escolares</h3>
 
       <div id="reportesPDFIndividual">
@@ -3019,6 +3177,12 @@ function generarPDFIndividual(){
       <div id="citatoriosPDFIndividual">
         ${htmlCitatorios}
       </div>
+
+      <h3>Seguimiento tutorial</h3>
+
+        <div id="seguimientoTutorialPDFIndividual">
+          ${htmlSeguimientoTutorial}
+        </div>
 
       <div class="validacion-individual">
 
@@ -3858,7 +4022,7 @@ async function cargarReportesAlumnoIndividual(uid, alumno){
     }else{
 
       html += `
-        <table class="tabla-individual">
+        <table id="tablaReportesIndividual" class="tabla-individual">
           <tr>
             <th>Fecha</th>
             <th>Tipo</th>
@@ -4226,7 +4390,7 @@ async function cargarJustificantesAlumnoIndividual(uid, alumno){
     }else{
 
       html += `
-        <table class="tabla-individual">
+        <table id="tablaJustificantesIndividual" class="tabla-individual">
           <tr>
             <th>Fecha</th>
             <th>Tipo</th>
@@ -4544,7 +4708,7 @@ async function cargarPasesSalidaAlumnoIndividual(uid, alumno){
     }else{
 
       html += `
-        <table class="tabla-individual">
+        <table id="tablaPasesIndividual" class="tabla-individual">
 
           <tr>
             <th>Fecha</th>
@@ -4925,10 +5089,32 @@ async function registrarCitatorioAlumno(){
 
     if(datos.success){
 
-      mostrarMensajeSistema(
+      let mensajeFinal =
         'Citatorio registrado correctamente. Folio: ' +
-        datos.folio,
-        'exito'
+        datos.folio +
+        '. ';
+
+      if(datos.correoEnviado){
+        mensajeFinal +=
+          'Correo de citatorio enviado al tutor. ';
+      }else{
+        mensajeFinal +=
+          'No se pudo enviar el correo al tutor. ';
+      }
+
+      if(datos.pushEnviado){
+        mensajeFinal +=
+          'Notificación push enviada al tutor.';
+      }else{
+        mensajeFinal +=
+          'No se pudo enviar la notificación push.';
+      }
+
+      mostrarMensajeSistema(
+        mensajeFinal,
+        datos.correoEnviado || datos.pushEnviado
+          ? 'exito'
+          : 'info'
       );
 
       buscarCitatoriosWeb();
@@ -5181,7 +5367,7 @@ async function cargarCitatoriosAlumnoIndividual(uid, alumno){
     }else{
 
       html += `
-        <table class="tabla-individual">
+        <table id="tablaCitatoriosIndividual" class="tabla-individual">
 
           <tr>
             <th>Fecha registro</th>
@@ -5597,14 +5783,29 @@ async function generarTablaCalificaciones(){
         <tbody>
     `;
 
-    data.datos.forEach(function(alumno){
+  data.datos.forEach(function(alumno){
 
-      html += `
-        <tr>
-          <td>
-            ${alumno.alumno}
-          </td>
-          <td>
+  const esBaja =
+    alumno.estatus === 'BAJA' ||
+    alumno.estatus === 'BAJA_ACADEMICA' ||
+    alumno.estatus === 'BAJA_DEFINITIVA';
+
+  const esAlta =
+    alumno.estatus === 'ALTA';
+
+  html += `
+    <tr class="${esBaja ? 'fila-baja' : ''}">
+      <td>
+        ${alumno.alumno}
+        ${esBaja ? ' (BAJA)' : ''}
+        ${esAlta ? ' (ALTA)' : ''}
+      </td>
+
+      <td>
+        ${
+          esBaja
+          ? '<strong>BAJA</strong>'
+          : `
             <input
               type="text"
               inputmode="decimal"
@@ -5614,11 +5815,13 @@ async function generarTablaCalificaciones(){
               data-grado="${alumno.grado}"
               data-grupo="${alumno.grupo}"
               placeholder="Ej. 8.5">
-          </td>
-        </tr>
-      `;
+          `
+        }
+      </td>
+    </tr>
+  `;
 
-    });
+});
 
     html += `
         </tbody>
@@ -5949,8 +6152,19 @@ async function consultarListaCalificaciones(){
       html += `
         <tr>
           <td>${index + 1}</td>
-          <td>${item.alumno}</td>
-          <td>${item.calificacion}</td>
+          <td>
+  ${
+    item.estatus === 'BAJA' ||
+    item.estatus === 'BAJA_ACADEMICA' ||
+    item.estatus === 'BAJA_DEFINITIVA'
+    ? item.alumno + ' (BAJA)'
+    : item.alumno
+  }
+</td>
+
+<td>
+  ${item.calificacion || 'S/C'}
+</td>
         </tr>
       `;
 
@@ -7243,6 +7457,3744 @@ async function verRankingGruposAcademico(){
     console.error(error);
     mensaje.textContent =
       'Error al generar ranking de grupos.';
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
+
+// =====================================
+// ACTUALIZAR ESTATUS ALUMNO
+// =====================================
+
+async function actualizarEstatusAlumno(uid, fila){
+
+  const estatus =
+    document.getElementById(
+      `estatus_${fila}`
+    ).value;
+
+  mostrarLoader(
+    'Actualizando estatus...'
+  );
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=cambiarEstatusAlumno' +
+        '&rfid=' + encodeURIComponent(uid) +
+        '&estatus=' + encodeURIComponent(estatus) +
+'&usuario=' + encodeURIComponent(usuarioActual)
+      );
+
+    const datos =
+      await respuesta.json();
+
+    if(datos.ok){
+
+      mostrarMensajeSistema(
+        'Estatus actualizado correctamente.',
+        'success'
+      );
+
+    }else{
+
+      mostrarMensajeSistema(
+        datos.mensaje || 'No se pudo actualizar.',
+        'error'
+      );
+
+    }
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error actualizando estatus.',
+      'error'
+    );
+
+  }finally{
+
+    ocultarLoader();
+
+  }
+
+}
+
+// =====================================
+// MOSTRAR FORMULARIO BAJA ESCOLAR
+// =====================================
+
+function registrarBajaFormal(uid){
+
+  const contenedor =
+  document.getElementById('contenidoAdmin') ||
+  document.getElementById('panelAdministrador') ||
+  document.getElementById('resultadoBusquedaAlumno');
+
+  const formularioExistente =
+    document.getElementById('formularioBajaEscolar');
+
+  if(formularioExistente){
+    formularioExistente.remove();
+  }
+
+  const formulario = document.createElement('div');
+
+  formulario.id = 'formularioBajaEscolar';
+  formulario.className = 'form-admin';
+
+  formulario.innerHTML = `
+    <h3>Registrar baja escolar</h3>
+
+    <p>
+      Completa la información para registrar la baja formal del alumno.
+    </p>
+
+    <label>Motivo de baja</label>
+    <input
+      type="text"
+      id="motivoBajaEscolar"
+      placeholder="Ej. Cambio de domicilio">
+
+    <label>Observaciones</label>
+    <textarea
+      id="observacionesBajaEscolar"
+      placeholder="Observaciones adicionales"
+      rows="3"></textarea>
+
+    <br><br>
+
+    <button onclick="confirmarBajaFormal('${uid}')">
+      Registrar baja
+    </button>
+
+    <button onclick="cancelarBajaFormal()">
+      Cancelar
+    </button>
+  `;
+
+  contenedor.appendChild(formulario);
+}
+
+// =====================================
+// CONFIRMAR BAJA ESCOLAR FORMAL
+// =====================================
+
+async function confirmarBajaFormal(uid){
+
+  const motivo =
+    document.getElementById('motivoBajaEscolar').value.trim();
+
+  const observaciones =
+    document.getElementById('observacionesBajaEscolar').value.trim();
+
+  if(!motivo){
+
+    mostrarMensajeSistema(
+      'Escribe el motivo de la baja.',
+      'info'
+    );
+
+    return;
+  }
+
+  mostrarLoader('Registrando baja escolar...');
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=registrarBajaEscolar' +
+        '&rfid=' + encodeURIComponent(uid) +
+        '&motivo=' + encodeURIComponent(motivo) +
+        '&observaciones=' + encodeURIComponent(observaciones) +
+        '&usuario=' + encodeURIComponent(usuarioActual)
+      );
+
+    const datos =
+      await respuesta.json();
+
+    if(datos.ok){
+
+      mostrarMensajeSistema(
+        'Baja escolar registrada correctamente.',
+        'exito'
+      );
+
+      const formulario =
+        document.getElementById('formularioBajaEscolar');
+
+      if(formulario){
+        formulario.remove();
+      }
+
+      buscarAlumnoAdmin();
+
+    }else{
+
+      mostrarMensajeSistema(
+        datos.mensaje || 'No se pudo registrar la baja.',
+        'error'
+      );
+    }
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error registrando baja escolar.',
+      'error'
+    );
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
+
+// =====================================
+// CANCELAR BAJA ESCOLAR FORMAL
+// =====================================
+
+function cancelarBajaFormal(){
+
+  const formulario =
+    document.getElementById('formularioBajaEscolar');
+
+  if(formulario){
+    formulario.remove();
+  }
+
+}
+
+// =====================================
+// MOSTRAR BITÁCORA DE MOVIMIENTOS
+// =====================================
+
+async function mostrarBitacoraMovimientos(){
+
+  const contenedor =
+    document.getElementById('resultadoBusquedaAlumno');
+  document.getElementById('formDocente').style.display = 'none';
+  document.getElementById('formAlumno').style.display = 'none';
+  document.getElementById('panelEstadisticas').style.display = 'none';
+  document.getElementById('panelAlumnos').style.display = 'block';
+  mostrarLoader(
+    'Cargando historial de movimientos...'
+  );
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=obtenerBitacoraMovimientos'
+      );
+
+    const data =
+      await respuesta.json();
+
+    if(!data.ok){
+
+      contenedor.innerHTML =
+        '<p>No se pudo cargar la bitácora.</p>';
+
+      return;
+    }
+
+    if(data.datos.length === 0){
+
+      contenedor.innerHTML =
+        '<p>No hay movimientos registrados.</p>';
+
+      return;
+    }
+
+    let html = `
+      <h3>Historial de movimientos escolares</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Usuario</th>
+            <th>Alumno</th>
+            <th>Campo</th>
+            <th>Anterior</th>
+            <th>Nuevo</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    data.datos.forEach(function(item){
+
+      html += `
+        <tr>
+          <td>${new Date(item.fecha).toLocaleString('es-MX')}</td>
+          <td>${item.usuario}</td>
+          <td>${item.alumno}</td>
+          <td>${item.campo}</td>
+          <td>${item.anterior || '-'}</td>
+          <td>${item.nuevo || '-'}</td>
+          <td>${item.accion}</td>
+        </tr>
+      `;
+
+    });
+
+    html += `
+        </tbody>
+      </table>
+    `;
+
+    contenedor.innerHTML = html;
+
+  }catch(error){
+
+    console.error(error);
+
+    contenedor.innerHTML =
+      '<p>Error al cargar historial de movimientos.</p>';
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
+
+// =====================================
+// CALIFICACIONES REPORTE INDIVIDUAL
+// =====================================
+
+async function cargarCalificacionesReporteIndividual(uid){
+
+  const contenedor =
+    document.getElementById('resultadoReporteIndividual');
+
+  const respuesta =
+    await fetch(
+      API +
+      '?accion=obtenerCalificacionesReporteIndividual' +
+      '&uid=' + encodeURIComponent(uid)
+    );
+
+  const data =
+    await respuesta.json();
+
+  if(!data.ok){
+    return;
+  }
+
+  const alertasHTML =
+  generarAlertaIntegralAlumno(data.datos);
+
+let html = `
+  <h3>Alertas académicas</h3>
+
+  ${alertasHTML}
+
+  <h3>Calificaciones</h3>
+
+    <table id="tablaCalificacionesIndividual" class="tabla-individual">
+      <tr>
+        <th>Materia</th>
+        <th>1° Periodo</th>
+        <th>2° Periodo</th>
+        <th>3° Periodo</th>
+        <th>Promedio</th>
+        <th>Situación</th>
+      </tr>
+  `;
+
+  data.datos.forEach(function(item){
+
+    html += `
+      <tr>
+        <td>${item.materia}</td>
+        <td>${item.p1}</td>
+        <td>${item.p2}</td>
+        <td>${item.p3}</td>
+        <td>${item.promedio}</td>
+        <td>${item.situacion}</td>
+      </tr>
+    `;
+
+  });
+
+  html += `</table>`;
+
+  contenedor.innerHTML += html;
+const botonPDF =
+  document.querySelector(
+    'button[onclick="generarPDFIndividual()"]'
+  );
+
+if(botonPDF){
+  contenedor.appendChild(botonPDF);
+}
+
+}
+
+// =====================================
+// GENERAR ALERTAS ACADÉMICAS INDIVIDUALES
+// =====================================
+
+function generarAlertasAcademicasIndividual(calificaciones){
+
+  let alertasAltas = [];
+  let alertasMedias = [];
+
+  calificaciones.forEach(item => {
+
+    const materia = item.materia;
+
+    const p1 = item.p1 !== '' ? Number(item.p1) : null;
+    const p2 = item.p2 !== '' ? Number(item.p2) : null;
+    const p3 = item.p3 !== '' ? Number(item.p3) : null;
+    const promedio = item.promedio !== '' ? Number(item.promedio) : null;
+
+    if(p1 !== null && p2 !== null && p1 < 6 && p2 < 6){
+      alertasAltas.push(
+        `${materia}: reprobó 1° y 2° periodo.`
+      );
+    }
+
+    if(promedio !== null && promedio < 6){
+      alertasAltas.push(
+        `${materia}: promedio reprobatorio.`
+      );
+    }
+
+    if(promedio !== null && promedio >= 6 && promedio < 7){
+      alertasMedias.push(
+        `${materia}: promedio bajo.`
+      );
+    }
+
+    if(
+      (p1 !== null && p1 < 6) ||
+      (p2 !== null && p2 < 6) ||
+      (p3 !== null && p3 < 6)
+    ){
+      if(!(p1 !== null && p2 !== null && p1 < 6 && p2 < 6)){
+        alertasMedias.push(
+          `${materia}: tiene al menos un periodo reprobado.`
+        );
+      }
+    }
+
+  });
+
+  if(alertasAltas.length > 0){
+
+    return `
+      <div class="alerta-riesgo alerta-alta">
+        <h3>🔴 Riesgo académico alto</h3>
+        <ul>
+          ${alertasAltas.map(a => `<li>${a}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  if(alertasMedias.length > 0){
+
+    return `
+      <div class="alerta-riesgo alerta-media">
+        <h3>🟡 Riesgo académico medio</h3>
+        <ul>
+          ${alertasMedias.map(a => `<li>${a}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="alerta-riesgo alerta-baja">
+      <h3>🟢 Sin riesgo académico detectado</h3>
+      <p>
+        El alumno no presenta indicadores académicos críticos con la información registrada.
+      </p>
+    </div>
+  `;
+}
+
+// =====================================
+// OBTENER TABLA POR TÍTULO EN REPORTE INDIVIDUAL
+// =====================================
+
+function obtenerTablaReportePorTitulo(tituloBuscado){
+
+  const contenedor =
+    document.getElementById('resultadoReporteIndividual');
+
+  const titulos =
+    contenedor.querySelectorAll('h3');
+
+  for(let titulo of titulos){
+
+    if(
+      titulo.textContent
+        .toUpperCase()
+        .includes(tituloBuscado.toUpperCase())
+    ){
+
+      let elemento =
+        titulo.nextElementSibling;
+
+      while(elemento){
+
+        if(elemento.tagName === 'TABLE'){
+          return elemento;
+        }
+
+        const tabla =
+          elemento.querySelector
+          ? elemento.querySelector('table')
+          : null;
+
+        if(tabla){
+          return tabla;
+        }
+
+        elemento =
+          elemento.nextElementSibling;
+      }
+    }
+  }
+
+  return null;
+}
+
+// =====================================
+// ALERTA INTEGRAL DEL ALUMNO
+// =====================================
+
+function generarAlertaIntegralAlumno(calificaciones){
+
+  let alertasAltas = [];
+  let alertasMedias = [];
+
+  // ===== CALIFICACIONES =====
+  calificaciones.forEach(item => {
+
+    const materia = item.materia;
+
+    const p1 = item.p1 !== '' ? Number(item.p1) : null;
+    const p2 = item.p2 !== '' ? Number(item.p2) : null;
+    const p3 = item.p3 !== '' ? Number(item.p3) : null;
+    const promedio = item.promedio !== '' ? Number(item.promedio) : null;
+
+    if(p1 !== null && p2 !== null && p1 < 6 && p2 < 6){
+      alertasAltas.push(
+        `${materia}: reprobó 1° y 2° periodo.`
+      );
+    }
+
+    if(
+  promedio !== null &&
+  promedio < 6 &&
+  !(p1 !== null && p2 !== null && p1 < 6 && p2 < 6)
+){
+  alertasAltas.push(
+    `${materia}: promedio reprobatorio.`
+  );
+}
+
+    if(promedio !== null && promedio >= 6 && promedio < 7){
+      alertasMedias.push(
+        `${materia}: promedio bajo.`
+      );
+    }
+
+  });
+
+  // ===== ASISTENCIA =====
+  const tarjetas =
+    document.querySelectorAll('#resultadoReporteIndividual .card');
+
+  let faltas = 0;
+
+  tarjetas.forEach(card => {
+
+    const titulo =
+      card.querySelector('h3')?.textContent.trim().toUpperCase();
+
+    if(titulo === 'FALTAS'){
+      faltas =
+        Number(card.querySelector('p')?.textContent.trim()) || 0;
+    }
+
+  });
+
+  if(faltas >= 15){
+    alertasAltas.push(
+      `Tiene ${faltas} faltas acumuladas.`
+    );
+  }else if(faltas >= 8){
+    alertasMedias.push(
+      `Tiene ${faltas} faltas acumuladas.`
+    );
+  }
+
+  // ===== REPORTES ESCOLARES =====
+  const tablaReportes =
+    obtenerTablaReportePorTitulo('Reportes escolares');
+
+  let totalReportes = 0;
+
+  if(tablaReportes){
+    totalReportes =
+      Math.max(0, tablaReportes.querySelectorAll('tr').length - 1);
+  }
+
+  if(totalReportes >= 3){
+    alertasAltas.push(
+      `Tiene ${totalReportes} reportes escolares.`
+    );
+  }else if(totalReportes >= 1){
+    alertasMedias.push(
+      `Tiene ${totalReportes} reporte(s) escolar(es).`
+    );
+  }
+
+  // ===== CITATORIOS =====
+  const tablaCitatorios =
+    obtenerTablaReportePorTitulo('Citatorios escolares');
+
+  let totalCitatorios = 0;
+
+  if(tablaCitatorios){
+    totalCitatorios =
+      Math.max(0, tablaCitatorios.querySelectorAll('tr').length - 1);
+  }
+
+  if(totalCitatorios >= 2){
+    alertasAltas.push(
+      `Tiene ${totalCitatorios} citatorios escolares.`
+    );
+  }else if(totalCitatorios === 1){
+    alertasMedias.push(
+      `Tiene 1 citatorio escolar.`
+    );
+  }
+
+  // ===== RESULTADO FINAL =====
+  if(alertasAltas.length > 0){
+
+    return `
+      <div class="alerta-riesgo alerta-alta">
+        <h3>🔴 Riesgo integral alto</h3>
+        <ul>
+          ${alertasAltas.map(a => `<li>${a}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  if(alertasMedias.length > 0){
+
+    return `
+      <div class="alerta-riesgo alerta-media">
+        <h3>🟡 Riesgo integral medio</h3>
+        <ul>
+          ${alertasMedias.map(a => `<li>${a}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="alerta-riesgo alerta-baja">
+      <h3>🟢 Sin riesgo integral detectado</h3>
+      <p>
+        El alumno no presenta indicadores críticos con la información registrada.
+      </p>
+    </div>
+  `;
+}
+
+// =====================================
+// MOSTRAR PANEL RIESGO
+// =====================================
+
+function mostrarConcentradoRiesgo(){
+
+  document.getElementById(
+    'panelRiesgo'
+  ).style.display = 'block';
+
+  cargarConcentradoRiesgo();
+}
+
+// =====================================
+// OCULTAR PANEL RIESGO
+// =====================================
+
+function ocultarPanelRiesgo(){
+
+  document.getElementById(
+    'panelRiesgo'
+  ).style.display = 'none';
+}
+
+// =====================================
+// CARGAR CONCENTRADO DE RIESGO
+// =====================================
+
+async function cargarConcentradoRiesgo(){
+
+  mostrarLoader(
+    'Analizando alumnos en riesgo...'
+  );
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=obtenerConcentradoRiesgo'
+      );
+
+    const data =
+      await respuesta.json();
+
+    if(!data.ok){
+
+      mostrarMensajeSistema(
+        'No se pudo cargar el concentrado.',
+        'error'
+      );
+
+      return;
+    }
+
+    const totalAlto =
+      data.datos.filter(item => item.riesgo === 'ALTO').length;
+
+    const totalMedio =
+      data.datos.filter(item => item.riesgo === 'MEDIO').length;
+
+    const totalBajo =
+      data.datos.filter(item => item.riesgo === 'BAJO').length;
+
+    const conteoGrupos = {};
+    const conteoMaterias = {};
+
+    data.datos.forEach(item => {
+
+      conteoGrupos[item.grupo] =
+        (conteoGrupos[item.grupo] || 0) + 1;
+
+      item.motivos.forEach(motivo => {
+
+        const materia =
+          motivo.includes(':')
+          ? motivo.split(':')[0]
+          : '';
+
+        if(materia){
+          conteoMaterias[materia] =
+            (conteoMaterias[materia] || 0) + 1;
+        }
+
+      });
+
+    });
+
+    const grupoCritico =
+      Object.keys(conteoGrupos).sort((a,b) =>
+        conteoGrupos[b] - conteoGrupos[a]
+      )[0] || 'Sin datos';
+
+    const materiaCritica =
+      Object.keys(conteoMaterias).sort((a,b) =>
+        conteoMaterias[b] - conteoMaterias[a]
+      )[0] || 'Sin datos';
+
+    let html = `
+      <div class="dashboard">
+
+        <div class="card">
+          <h3>🔴 Riesgo alto</h3>
+          <p>${totalAlto}</p>
+        </div>
+
+        <div class="card">
+          <h3>🟡 Riesgo medio</h3>
+          <p>${totalMedio}</p>
+        </div>
+
+        <div class="card">
+          <h3>🟢 Riesgo bajo</h3>
+          <p>${totalBajo}</p>
+        </div>
+
+        <div class="card">
+          <h3>Grupo crítico</h3>
+          <p style="font-size:20px;">${grupoCritico}</p>
+        </div>
+
+        <div class="card">
+          <h3>Materia crítica</h3>
+          <p style="font-size:16px;">${materiaCritica}</p>
+        </div>
+
+      </div>
+
+      <table class="tabla-individual">
+        <tr>
+          <th>Alumno</th>
+          <th>Grupo</th>
+          <th>Riesgo</th>
+          <th>Puntaje</th>
+          <th>Motivos</th>
+        </tr>
+    `;
+
+    data.datos.forEach(item => {
+
+      let claseRiesgo = 'riesgo-bajo';
+        let textoRiesgo = '🟢 BAJO';
+
+        if(item.riesgo === 'ALTO'){
+          claseRiesgo = 'riesgo-alto';
+          textoRiesgo = '🔴 ALTO';
+        }else if(item.riesgo === 'MEDIO'){
+          claseRiesgo = 'riesgo-medio';
+          textoRiesgo = '🟡 MEDIO';
+        }
+
+      html += `
+        <tr class="${claseRiesgo}">
+          <td>${item.alumno}</td>
+          <td>${item.grupo}</td>
+          <td><strong>${textoRiesgo}</strong></td>
+          <td>${item.puntaje || 0}</td>
+          <td>${item.motivos.join('<br>')}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+      </table>
+    `;
+
+    document.getElementById(
+      'resultadoConcentradoRiesgo'
+    ).innerHTML = html;
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error cargando concentrado.',
+      'error'
+    );
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
+
+/// =====================================
+// PDF / IMPRESIÓN CONCENTRADO DE RIESGO
+// =====================================
+
+function generarPDFRiesgo(){
+
+  const contenido =
+    document.getElementById('resultadoConcentradoRiesgo');
+
+  if(!contenido || contenido.innerHTML.trim() === ''){
+
+    mostrarMensajeSistema(
+      'Primero carga el concentrado.',
+      'info'
+    );
+
+    return;
+  }
+
+  const ventana =
+    window.open('', '_blank');
+
+  ventana.document.write(`
+    <html>
+      <head>
+        <title>Concentrado de alumnos en riesgo</title>
+
+        <style>
+          body{
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            color: #111;
+          }
+
+          h1{
+            text-align:center;
+            color:#1565c0;
+          }
+
+          table{
+            width:100%;
+            border-collapse:collapse;
+            font-size:11px;
+          }
+
+          th{
+            background:#1565c0;
+            color:white;
+            padding:8px;
+            border:1px solid #0d47a1;
+          }
+
+          td{
+            border:1px solid #ccc;
+            padding:7px;
+            text-align:center;
+          }
+
+          .dashboard{
+            display:flex;
+            gap:12px;
+            margin-bottom:20px;
+          }
+
+          .card{
+            flex:1;
+            border:1px solid #ccc;
+            border-radius:10px;
+            padding:12px;
+            text-align:center;
+          }
+
+          .card h3{
+            margin:0 0 8px;
+            color:#1565c0;
+            font-size:14px;
+          }
+
+          .card p{
+            margin:0;
+            font-size:20px;
+            font-weight:bold;
+          }
+
+          .riesgo-alto td{
+            background:#ffebee;
+            color:#b71c1c;
+          }
+
+          .riesgo-medio td{
+            background:#fff8e1;
+            color:#795548;
+          }
+
+          @media print{
+            @page{
+              size: landscape;
+              margin: 1cm;
+            }
+          }
+        </style>
+      </head>
+
+      <body>
+
+        <h1>CONCENTRADO DE ALUMNOS EN RIESGO</h1>
+
+        <p>
+          <strong>Fecha de emisión:</strong>
+          ${new Date().toLocaleDateString('es-MX')}
+        </p>
+
+        ${contenido.innerHTML}
+
+        <div style="margin-top:20px; text-align:center;" class="no-print">
+  <button onclick="window.print()">
+    Imprimir / Guardar como PDF
+  </button>
+</div>
+
+      </body>
+    </html>
+  `);
+
+  ventana.document.close();
+}
+
+// =====================================
+// FORMULARIO SEGUIMIENTO TUTORIAL
+// =====================================
+
+function mostrarFormularioSeguimiento(
+  uid,
+  alumno,
+  grupo,
+  riesgo
+){
+
+  const html = `
+
+    <div class="form-admin">
+
+      <h3>
+        Seguimiento tutorial
+      </h3>
+
+      <p>
+        <strong>Alumno:</strong>
+        ${alumno}
+      </p>
+
+      <p>
+        <strong>Grupo:</strong>
+        ${grupo}
+      </p>
+
+      <p>
+        <strong>Riesgo:</strong>
+        ${riesgo}
+      </p>
+
+      <input
+        type="text"
+        id="seguimientoResponsable"
+        placeholder="Responsable">
+
+      <input
+        type="date"
+        id="seguimientoRevision">
+
+      <textarea
+        id="seguimientoAccion"
+        rows="4"
+        style="width:100%;"
+        placeholder="¿Qué hizo la escuela?">
+      </textarea>
+
+      <textarea
+        id="seguimientoNotas"
+        rows="6"
+        style="width:100%;"
+        placeholder="Seguimiento posterior, acuerdos, llamadas, entrevistas, compromisos, observaciones, etc.">
+      </textarea>
+
+      <button onclick="guardarSeguimientoTutorial(
+        '${uid}',
+        '${alumno}',
+        '${grupo}',
+        '${riesgo}'
+      )">
+        Guardar seguimiento
+      </button>
+
+    </div>
+  `;
+
+  document.getElementById(
+    'resultadoConcentradoRiesgo'
+  ).insertAdjacentHTML(
+    'beforeend',
+    html
+  );
+}
+
+// =====================================
+// MOSTRAR ALUMNOS CRÍTICOS
+// =====================================
+
+async function mostrarAlumnosCriticos(){
+
+  mostrarLoader(
+    'Analizando alumnos críticos...'
+  );
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=obtenerConcentradoRiesgo'
+      );
+
+    const data =
+      await respuesta.json();
+
+    if(!data.ok){
+
+      mostrarMensajeSistema(
+        'No se pudo cargar alumnos críticos.',
+        'error'
+      );
+
+      return;
+    }
+
+    const criticos =
+      data.datos.filter(item =>
+        item.riesgo === 'ALTO'
+      );
+
+    let html = `
+      <h3>Alumnos críticos</h3>
+
+      <p class="mensaje-vacio">
+        Se muestran únicamente alumnos con riesgo alto.
+      </p>
+    `;
+
+    if(criticos.length === 0){
+
+      html += `
+        <p class="mensaje-vacio">
+          No hay alumnos críticos registrados.
+        </p>
+      `;
+
+      document.getElementById(
+        'resultadoConcentradoRiesgo'
+      ).innerHTML = html;
+
+      return;
+    }
+
+    html += `
+      <table class="tabla-individual">
+        <tr>
+          <th>Alumno</th>
+          <th>Grupo</th>
+          <th>Motivos críticos</th>
+        </tr>
+    `;
+
+    criticos.forEach(item => {
+
+      html += `
+        <tr class="riesgo-alto">
+          <td>${item.alumno}</td>
+          <td>${item.grupo}</td>
+          <td>${item.motivos.join('<br>')}</td>
+        </tr>
+      `;
+
+    });
+
+    html += `
+      </table>
+    `;
+
+    document.getElementById(
+      'resultadoConcentradoRiesgo'
+    ).innerHTML = html;
+
+    mostrarMensajeSistema(
+      'Alumnos críticos cargados correctamente.',
+      'exito'
+    );
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error cargando alumnos críticos.',
+      'error'
+    );
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
+
+// =====================================
+// PDF / IMPRESIÓN ALUMNOS CRÍTICOS
+// =====================================
+
+async function generarPDFAlumnosCriticos(){
+
+  mostrarLoader(
+    'Preparando PDF de alumnos críticos...'
+  );
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=obtenerConcentradoRiesgo'
+      );
+
+    const data =
+      await respuesta.json();
+
+    if(!data.ok){
+
+      mostrarMensajeSistema(
+        'No se pudieron cargar alumnos críticos.',
+        'error'
+      );
+
+      return;
+    }
+
+    const criticos =
+      data.datos.filter(item =>
+        item.riesgo === 'ALTO'
+      );
+
+    if(criticos.length === 0){
+
+      mostrarMensajeSistema(
+        'No hay alumnos críticos para imprimir.',
+        'info'
+      );
+
+      return;
+    }
+
+    let filas = '';
+
+    criticos.forEach(item => {
+
+      filas += `
+        <tr>
+          <td>${item.alumno}</td>
+          <td>${item.grupo}</td>
+          <td>${item.motivos.join('<br>')}</td>
+        </tr>
+      `;
+
+    });
+
+    const ventana =
+      window.open('', '_blank');
+
+    ventana.document.write(`
+      <html>
+        <head>
+          <title>Alumnos críticos</title>
+
+          <style>
+            body{
+              font-family: Arial, sans-serif;
+              padding:20px;
+              color:#111;
+            }
+
+            h1{
+              text-align:center;
+              color:#b71c1c;
+              margin-bottom:6px;
+            }
+
+            .subtitulo{
+              text-align:center;
+              font-size:13px;
+              margin-bottom:20px;
+            }
+
+            .resumen{
+              border:1px solid #b71c1c;
+              background:#ffebee;
+              color:#b71c1c;
+              padding:12px;
+              border-radius:10px;
+              margin-bottom:18px;
+              font-weight:bold;
+              text-align:center;
+            }
+
+            table{
+              width:100%;
+              border-collapse:collapse;
+              font-size:12px;
+            }
+
+            th{
+              background:#b71c1c;
+              color:white;
+              padding:8px;
+              border:1px solid #7f0000;
+            }
+
+            td{
+              border:1px solid #ccc;
+              padding:8px;
+              vertical-align:top;
+              text-align:left;
+            }
+
+            td:nth-child(2){
+              text-align:center;
+              width:90px;
+            }
+
+            .no-print{
+              margin-top:20px;
+              text-align:center;
+            }
+
+            .no-print button{
+              padding:12px 20px;
+              background:#1565c0;
+              color:white;
+              border:none;
+              border-radius:8px;
+              font-weight:bold;
+              cursor:pointer;
+            }
+
+            @media print{
+              .no-print{
+                display:none;
+              }
+
+              @page{
+                size: landscape;
+                margin:1cm;
+              }
+            }
+          </style>
+        </head>
+
+        <body>
+
+          <h1>ALUMNOS CRÍTICOS</h1>
+
+          <div class="subtitulo">
+            Fecha de emisión:
+            ${new Date().toLocaleDateString('es-MX')}
+          </div>
+
+          <div class="resumen">
+            Total de alumnos en riesgo alto:
+            ${criticos.length}
+          </div>
+
+          <table>
+            <tr>
+              <th>Alumno</th>
+              <th>Grupo</th>
+              <th>Motivos críticos</th>
+            </tr>
+
+            ${filas}
+
+          </table>
+
+          <div class="no-print">
+            <button onclick="window.print()">
+              Imprimir / Guardar como PDF
+            </button>
+          </div>
+
+        </body>
+      </html>
+    `);
+
+    ventana.document.close();
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error generando PDF de alumnos críticos.',
+      'error'
+    );
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
+
+// =====================================
+// PANEL SEGUIMIENTO TUTORIAL
+// =====================================
+
+function mostrarPanelSeguimientoTutorial(){
+
+  const panel =
+    document.getElementById('panelSeguimientoTutorial');
+
+  if(panel){
+    panel.style.display = 'block';
+  }
+}
+
+function ocultarPanelSeguimientoTutorial(){
+
+  const panel =
+    document.getElementById('panelSeguimientoTutorial');
+
+  if(panel){
+    panel.style.display = 'none';
+  }
+
+  const resultado =
+    document.getElementById('resultadoBusquedaSeguimiento');
+
+  if(resultado){
+    resultado.innerHTML = '';
+  }
+}
+
+// =====================================
+// BUSCAR ALUMNO PARA SEGUIMIENTO
+// =====================================
+
+async function buscarAlumnoSeguimientoTutorial(){
+
+  const busqueda =
+    document.getElementById('buscarAlumnoSeguimiento').value.trim();
+
+  if(!busqueda){
+
+    mostrarMensajeSistema(
+      'Escribe un nombre o UID.',
+      'info'
+    );
+
+    return;
+  }
+
+  mostrarLoader('Buscando alumno...');
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=buscarAlumno' +
+        '&busqueda=' + encodeURIComponent(busqueda)
+      );
+
+    const alumnos =
+      await respuesta.json();
+
+    let html = '';
+
+    alumnos.forEach(alumno => {
+
+      html += `
+        <div class="resultado-alumno">
+
+          <p><strong>${alumno.nombre}</strong></p>
+          <p>UID: ${alumno.uid}</p>
+          <p>Grupo: ${alumno.grado} ${alumno.grupo}</p>
+          <p>Estatus: ${alumno.estatus}</p>
+
+          <button onclick="abrirFormularioSeguimientoTutorial(
+            '${alumno.uid}',
+            '${alumno.nombre}',
+            '${alumno.grado}',
+            '${alumno.grupo}'
+          )">
+            Registrar seguimiento
+          </button>
+
+        </div>
+      `;
+    });
+
+    document.getElementById(
+      'resultadoBusquedaSeguimiento'
+    ).innerHTML =
+      html || '<p>No se encontraron alumnos.</p>';
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error buscando alumno.',
+      'error'
+    );
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
+
+// =====================================
+// ABRIR FORMULARIO SEGUIMIENTO TUTORIAL
+// =====================================
+
+function abrirFormularioSeguimientoTutorial(
+  uid,
+  alumno,
+  grado,
+  grupo
+){
+
+  const contenedor =
+    document.getElementById(
+      'resultadoBusquedaSeguimiento'
+    );
+
+  contenedor.innerHTML = `
+
+    <div class="form-admin">
+
+      <h3>
+        Seguimiento tutorial
+      </h3>
+
+      <p>
+        <strong>Alumno:</strong>
+        ${alumno}
+      </p>
+
+      <p>
+        <strong>UID:</strong>
+        ${uid}
+      </p>
+
+      <p>
+        <strong>Grupo:</strong>
+        ${grado} ${grupo}
+      </p>
+
+      <input
+  type="text"
+  id="seguimientoResponsable"
+  placeholder="Responsable">
+
+<label>
+  Próxima revisión
+</label>
+
+<input
+  type="date"
+  id="seguimientoRevision">
+
+<label>
+  Acción realizada
+</label>
+
+<textarea
+  id="seguimientoAccion"
+  rows="4"
+  placeholder="Describa la acción realizada por la escuela"></textarea>
+
+<label>
+  Seguimiento posterior
+</label>
+
+<textarea
+  id="seguimientoNotas"
+  rows="6"
+  placeholder="Acuerdos, llamadas, reuniones, compromisos, observaciones, etc."></textarea>
+      
+  
+  <button onclick="guardarSeguimientoTutorial(
+        '${uid}',
+        '${alumno}',
+        '${grado}',
+        '${grupo}'
+      )">
+        Guardar seguimiento
+      </button>
+
+      <button onclick="buscarAlumnoSeguimientoTutorial()">
+        Regresar
+      </button>
+
+    <hr>
+
+<div
+  id="historialSeguimientoTutorial">
+</div>
+    
+    </div>
+  `;
+
+  verSeguimientoTutorial(uid);
+}
+
+// =====================================
+// GUARDAR SEGUIMIENTO TUTORIAL
+// =====================================
+
+async function guardarSeguimientoTutorial(
+  uid,
+  alumno,
+  grado,
+  grupo
+){
+
+  const responsable =
+    document.getElementById(
+      'seguimientoResponsable'
+    ).value.trim();
+
+  const revision =
+    document.getElementById(
+      'seguimientoRevision'
+    ).value;
+
+  const accion =
+    document.getElementById(
+      'seguimientoAccion'
+    ).value.trim();
+
+  const notas =
+    document.getElementById(
+      'seguimientoNotas'
+    ).value.trim();
+
+  if(
+    !responsable ||
+    !accion
+  ){
+
+    mostrarMensajeSistema(
+      'Responsable y acción son obligatorios.',
+      'info'
+    );
+
+    return;
+  }
+
+  mostrarLoader(
+    'Guardando seguimiento...'
+  );
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=registrarSeguimientoTutorial' +
+        '&uid=' + encodeURIComponent(uid) +
+        '&alumno=' + encodeURIComponent(alumno) +
+        '&grado=' + encodeURIComponent(grado) +
+        '&grupo=' + encodeURIComponent(grupo) +
+        '&nivelRiesgo=' + encodeURIComponent('PENDIENTE') +
+        '&accionRealizada=' + encodeURIComponent(accion) +
+        '&responsable=' + encodeURIComponent(responsable) +
+        '&proximaRevision=' + encodeURIComponent(revision) +
+        '&seguimientoPosterior=' + encodeURIComponent(notas) +
+        '&usuario=' + encodeURIComponent(usuarioActual)
+      );
+
+    const datos =
+      await respuesta.json();
+
+    if(datos.ok){
+
+      mostrarMensajeSistema(
+        'Seguimiento registrado correctamente.',
+        'exito'
+      );
+
+      ocultarPanelSeguimientoTutorial();
+
+    }else{
+
+      mostrarMensajeSistema(
+        datos.mensaje ||
+        'No se pudo guardar.',
+        'error'
+      );
+    }
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error guardando seguimiento.',
+      'error'
+    );
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
+
+// =====================================
+// VER HISTORIAL SEGUIMIENTO
+// =====================================
+
+async function verSeguimientoTutorial(uid){
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=obtenerSeguimientoTutorial' +
+        '&uid=' +
+        encodeURIComponent(uid)
+      );
+
+    const datos =
+      await respuesta.json();
+
+    if(!datos.ok){
+      return;
+    }
+
+    let html = `
+      <h4>
+        Historial de seguimiento
+      </h4>
+    `;
+
+    if(datos.datos.length === 0){
+
+      html += `
+        <p>
+          Sin seguimientos registrados.
+        </p>
+      `;
+
+    }else{
+
+      html += `
+        <table class="tabla-individual">
+
+          <tr>
+            <th>Fecha</th>
+            <th>Responsable</th>
+            <th>Acción</th>
+            <th>Próxima revisión</th>
+            <th>Seguimiento posterior</th>
+          </tr>
+      `;
+
+      datos.datos.forEach(item => {
+        const fechaRegistro =
+  item.fecha
+  ? new Date(item.fecha).toLocaleString('es-MX')
+  : '';
+
+const fechaRevision =
+  item.revision
+  ? new Date(item.revision).toLocaleDateString('es-MX')
+  : '';
+        html += `
+          <tr>
+              <td>${fechaRegistro}</td>
+              <td>${item.responsable}</td>
+              <td>${item.accion}</td>
+              <td>${fechaRevision}</td>
+              <td>${item.notas || ''}</td>
+          </tr>
+        `;
+      });
+
+      html += `
+        </table>
+      `;
+
+    }
+
+    document.getElementById(
+      'historialSeguimientoTutorial'
+    ).innerHTML = html;
+
+  }catch(error){
+
+    console.error(error);
+
+  }
+
+}
+
+// =====================================
+// SEGUIMIENTO TUTORIAL EN REPORTE INDIVIDUAL
+// =====================================
+
+async function cargarSeguimientoTutorialReporteIndividual(uid){
+
+  const contenedor =
+    document.getElementById('resultadoReporteIndividual');
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=obtenerSeguimientoTutorial' +
+        '&uid=' + encodeURIComponent(uid)
+      );
+
+    const data =
+      await respuesta.json();
+
+    if(!data.ok){
+      return;
+    }
+
+    let html = `
+      <h3>Seguimiento tutorial</h3>
+    `;
+
+    if(data.datos.length === 0){
+
+      html += `
+        <p class="mensaje-vacio">
+          Sin seguimientos tutoriales registrados.
+        </p>
+      `;
+
+    }else{
+
+      html += `
+        <table id="tablaSeguimientoTutorialIndividual" class="tabla-individual">
+          <tr>
+            <th>Fecha</th>
+            <th>Responsable</th>
+            <th>Acción</th>
+            <th>Próxima revisión</th>
+            <th>Seguimiento posterior</th>
+          </tr>
+      `;
+
+      data.datos.forEach(item => {
+
+        const fechaRegistro =
+          item.fecha
+          ? new Date(item.fecha).toLocaleString('es-MX')
+          : '';
+
+        const fechaRevision =
+          item.revision
+          ? new Date(item.revision).toLocaleDateString('es-MX')
+          : '';
+
+        html += `
+          <tr>
+            <td>${fechaRegistro}</td>
+            <td>${item.responsable || ''}</td>
+            <td>${item.accion || ''}</td>
+            <td>${fechaRevision}</td>
+            <td>${item.notas || ''}</td>
+          </tr>
+        `;
+      });
+
+      html += `</table>`;
+    }
+
+    contenedor.innerHTML += html;
+
+  }catch(error){
+
+    console.error(error);
+  }
+}
+
+// =====================================
+// CARGAR DASHBOARD INSTITUCIONAL
+// =====================================
+
+async function cargarDashboardInstitucional(){
+
+  mostrarLoader(
+    'Cargando dashboard institucional...'
+  );
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=obtenerDashboardInstitucional'
+      );
+
+    const data =
+      await respuesta.json();
+
+      data.topReportes =
+  Array.isArray(data.topReportes)
+  ? data.topReportes
+  : [];
+
+data.topCitatorios =
+  Array.isArray(data.topCitatorios)
+  ? data.topCitatorios
+  : [];
+
+data.topGruposRiesgo =
+  Array.isArray(data.topGruposRiesgo)
+  ? data.topGruposRiesgo
+  : [];
+
+data.proximasRevisiones =
+  Array.isArray(data.proximasRevisiones)
+  ? data.proximasRevisiones
+  : [];
+
+    if(!data.ok){
+
+      mostrarMensajeSistema(
+        'No se pudo cargar el dashboard institucional.',
+        'error'
+      );
+
+      return;
+    }
+
+    const topReportesHTML =
+      data.topReportes.length === 0
+      ? '<tr><td>Sin datos</td></tr>'
+      : data.topReportes.map(item => `
+          <tr>
+            <td>${item.alumno}</td>
+            <td><strong>${item.total}</strong></td>
+          </tr>
+        `).join('');
+
+    const topCitatoriosHTML =
+      data.topCitatorios.length === 0
+      ? '<tr><td>Sin datos</td></tr>'
+      : data.topCitatorios.map(item => `
+          <tr>
+            <td>${item.alumno}</td>
+            <td><strong>${item.total}</strong></td>
+          </tr>
+        `).join('');
+
+    const topGruposHTML =
+      data.topGruposRiesgo.length === 0
+      ? '<tr><td>Sin datos</td></tr>'
+      : data.topGruposRiesgo.map(item => `
+          <tr>
+            <td>${item.grupo}</td>
+            <td>
+              🔴 ${item.alto}
+              <br>
+              🟡 ${item.medio}
+            </td>
+          </tr>
+        `).join('');
+
+    const revisionesHTML =
+      data.proximasRevisiones.length === 0
+      ? '<tr><td>Sin datos</td></tr>'
+      : data.proximasRevisiones.map(item => `
+          <tr>
+            <td>
+              ${new Date(item.fecha).toLocaleDateString('es-MX')}
+              <br>
+              ${item.alumno}
+              <br>
+              <small>${item.responsable}</small>
+            </td>
+          </tr>
+        `).join('');
+
+    let html = `
+      <h3>Dashboard institucional</h3>
+
+      <div class="dashboard">
+
+        <div class="card">
+          <h3>Alumnos activos</h3>
+          <p>${data.alumnosActivos}</p>
+        </div>
+
+        <div class="card">
+          <h3>Alumnos baja</h3>
+          <p>${data.alumnosBaja}</p>
+        </div>
+
+        <div class="card">
+          <h3>🔴 Riesgo alto</h3>
+          <p>${data.riesgoAlto}</p>
+        </div>
+
+        <div class="card">
+          <h3>🟡 Riesgo medio</h3>
+          <p>${data.riesgoMedio}</p>
+        </div>
+
+        <div class="card">
+          <h3>Reportes escolares</h3>
+          <p>${data.reportes}</p>
+        </div>
+
+        <div class="card">
+          <h3>Citatorios</h3>
+          <p>${data.citatorios}</p>
+        </div>
+
+        <div class="card">
+          <h3>Seguimientos</h3>
+          <p>${data.seguimientos}</p>
+        </div>
+
+        <div class="card">
+          <h3>Revisiones pendientes</h3>
+          <p>${data.revisionesPendientes}</p>
+        </div>
+
+      </div>
+
+      <h3>Indicadores de atención prioritaria</h3>
+
+      <div class="dashboard">
+
+        <div class="card">
+          <h3>Top reportes</h3>
+          <table>
+            ${topReportesHTML}
+          </table>
+        </div>
+
+        <div class="card">
+          <h3>Top citatorios</h3>
+          <table>
+            ${topCitatoriosHTML}
+          </table>
+        </div>
+
+        <div class="card">
+          <h3>Grupos con mayor riesgo</h3>
+          <table>
+            ${topGruposHTML}
+          </table>
+        </div>
+
+        <div class="card">
+          <h3>Próximas revisiones</h3>
+          <table>
+            ${revisionesHTML}
+          </table>
+        </div>
+
+      </div>
+    `;
+
+    document.getElementById(
+      'resultadoDashboardInstitucional'
+    ).innerHTML = html;
+
+    document.getElementById(
+      'panelEstadisticas'
+    ).style.display = 'block';
+
+    mostrarMensajeSistema(
+      'Dashboard institucional cargado.',
+      'exito'
+    );
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error cargando dashboard institucional.',
+      'error'
+    );
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
+ 
+
+function obtenerFechaCompleta(){
+
+  const meses = [
+    'enero',
+    'febrero',
+    'marzo',
+    'abril',
+    'mayo',
+    'junio',
+    'julio',
+    'agosto',
+    'septiembre',
+    'octubre',
+    'noviembre',
+    'diciembre'
+  ];
+
+  const hoy = new Date();
+
+  return (
+    hoy.getDate() +
+    ' de ' +
+    meses[hoy.getMonth()] +
+    ' de ' +
+    hoy.getFullYear()
+  );
+}
+
+
+// =====================================
+// PDF EJECUTIVO DASHBOARD INSTITUCIONAL
+// =====================================
+
+async function generarPDFDashboardInstitucional(){
+
+  const ventana =
+    window.open('', '_blank');
+
+  if(!ventana){
+
+    mostrarMensajeSistema(
+      'El navegador bloqueó la ventana emergente. Permite popups para generar el PDF.',
+      'error'
+    );
+
+    return;
+  }
+
+  ventana.document.write(`
+    <html>
+      <body style="font-family:Arial; padding:30px;">
+        <h2>Preparando PDF ejecutivo institucional...</h2>
+        <p>Espera un momento.</p>
+      </body>
+    </html>
+  `);
+
+  ventana.document.close();
+
+  mostrarLoader(
+    'Preparando PDF ejecutivo institucional...'
+  );
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=obtenerDashboardInstitucional'
+      );
+
+    const data =
+      await respuesta.json();
+
+    if(!data.ok){
+
+      mostrarMensajeSistema(
+        'No se pudo generar el PDF institucional.',
+        'error'
+      );
+
+      return;
+    }
+
+    data.topReportes =
+      Array.isArray(data.topReportes)
+      ? data.topReportes
+      : [];
+
+    data.topCitatorios =
+      Array.isArray(data.topCitatorios)
+      ? data.topCitatorios
+      : [];
+
+    data.topGruposRiesgo =
+      Array.isArray(data.topGruposRiesgo)
+      ? data.topGruposRiesgo
+      : [];
+
+    data.proximasRevisiones =
+      Array.isArray(data.proximasRevisiones)
+      ? data.proximasRevisiones
+      : [];
+
+    const filasReportes =
+      data.topReportes.length === 0
+      ? '<tr><td colspan="2">Sin datos</td></tr>'
+      : data.topReportes.map(item => `
+          <tr>
+            <td>${item.alumno}</td>
+            <td>${item.total}</td>
+          </tr>
+        `).join('');
+
+    const filasCitatorios =
+      data.topCitatorios.length === 0
+      ? '<tr><td colspan="2">Sin datos</td></tr>'
+      : data.topCitatorios.map(item => `
+          <tr>
+            <td>${item.alumno}</td>
+            <td>${item.total}</td>
+          </tr>
+        `).join('');
+
+    const filasGrupos =
+      data.topGruposRiesgo.length === 0
+      ? '<tr><td colspan="4">Sin datos</td></tr>'
+      : data.topGruposRiesgo.map(item => `
+          <tr>
+            <td>${item.grupo}</td>
+            <td>${item.alto}</td>
+            <td>${item.medio}</td>
+            <td>${item.total}</td>
+          </tr>
+        `).join('');
+
+    const filasRevisiones =
+      data.proximasRevisiones.length === 0
+      ? '<tr><td colspan="4">Sin datos</td></tr>'
+      : data.proximasRevisiones.map(item => `
+          <tr>
+            <td>${new Date(item.fecha).toLocaleDateString('es-MX')}</td>
+            <td>${item.alumno}</td>
+            <td>${item.grupo}</td>
+            <td>${item.responsable || ''}</td>
+          </tr>
+        `).join('');
+
+    
+    ventana.document.write(`
+      <html>
+        <head>
+          <title>PDF Ejecutivo Institucional</title>
+
+          <style>
+            body{
+              font-family: Arial, sans-serif;
+              padding:24px;
+              color:#111;
+            }
+
+            h1{
+              text-align:center;
+              color:#1565c0;
+              margin-bottom:4px;
+              font-size:28px;
+            }
+
+            .subtitulo{
+              text-align:center;
+              font-size:13px;
+              margin-bottom:22px;
+            }
+
+            h2{
+              color:#1565c0;
+              border-bottom:3px solid #1565c0;
+              padding-bottom:5px;
+              margin-top:22px;
+              font-size:18px;
+            }
+
+            table{
+              width:100%;
+              border-collapse:collapse;
+              margin-bottom:18px;
+              font-size:12px;
+            }
+
+            th{
+              background:#1565c0;
+              color:white;
+              padding:8px;
+              border:1px solid #0d47a1;
+              text-align:center;
+            }
+
+            td{
+              border:1px solid #ccc;
+              padding:7px;
+              text-align:center;
+            }
+
+            .tabla-indicadores td:first-child{
+              text-align:left;
+              font-weight:bold;
+              width:70%;
+            }
+
+            .tabla-indicadores td:last-child{
+              font-size:18px;
+              font-weight:bold;
+              color:#1565c0;
+              width:30%;
+            }
+
+            .grid-doble{
+              display:grid;
+              grid-template-columns:1fr 1fr;
+              gap:18px;
+            }
+
+            .bloque{
+              page-break-inside:avoid;
+              break-inside:avoid;
+            }
+
+            .nota{
+              font-size:11px;
+              margin-top:18px;
+              color:#555;
+              text-align:center;
+            }
+
+            .no-print{
+              text-align:center;
+              margin-top:20px;
+            }
+
+            .no-print button{
+              padding:12px 22px;
+              background:#1565c0;
+              color:white;
+              border:none;
+              border-radius:8px;
+              font-weight:bold;
+              cursor:pointer;
+            }
+
+            @media print{
+              .no-print{
+                display:none;
+              }
+
+              @page{
+                size: letter portrait;
+                margin:1cm;
+              }
+            }
+          </style>
+        </head>
+
+        <body>
+
+          <h1>DASHBOARD INSTITUCIONAL</h1>
+
+<div
+  style="
+    text-align:center;
+    font-size:16px;
+    font-weight:bold;
+    margin-top:10px;
+  ">
+  CENTRO ESCOLAR GENERAL RAFAEL ÁVILA CAMACHO
+</div>
+
+<div
+  style="
+    text-align:center;
+    font-size:13px;
+    margin-top:4px;
+  ">
+  Nivel Secundaria
+</div>
+
+<div
+  style="
+    text-align:center;
+    font-size:13px;
+    margin-bottom:20px;
+  ">
+  San Martín Texmelucan, Puebla
+</div>
+
+<div class="subtitulo">
+  Fecha de emisión:
+  ${obtenerFechaCompleta()}
+</div>
+
+          <h2>Indicadores generales</h2>
+
+          <table class="tabla-indicadores">
+            <tr>
+              <td>Alumnos activos</td>
+              <td>${data.alumnosActivos}</td>
+            </tr>
+            <tr>
+              <td>Alumnos en baja</td>
+              <td>${data.alumnosBaja}</td>
+            </tr>
+            <tr>
+              <td>Riesgo alto</td>
+              <td>${data.riesgoAlto}</td>
+            </tr>
+            <tr>
+              <td>Riesgo medio</td>
+              <td>${data.riesgoMedio}</td>
+            </tr>
+            <tr>
+              <td>Reportes escolares</td>
+              <td>${data.reportes}</td>
+            </tr>
+            <tr>
+              <td>Citatorios escolares</td>
+              <td>${data.citatorios}</td>
+            </tr>
+            <tr>
+              <td>Seguimientos tutoriales</td>
+              <td>${data.seguimientos}</td>
+            </tr>
+            <tr>
+              <td>Revisiones pendientes</td>
+              <td>${data.revisionesPendientes}</td>
+            </tr>
+          </table>
+
+          <h2>Indicadores de atención prioritaria</h2>
+
+          <div class="grid-doble">
+
+            <div class="bloque">
+              <h2>Top reportes</h2>
+              <table>
+                <tr>
+                  <th>Alumno</th>
+                  <th>Total</th>
+                </tr>
+                ${filasReportes}
+              </table>
+            </div>
+
+            <div class="bloque">
+              <h2>Top citatorios</h2>
+              <table>
+                <tr>
+                  <th>Alumno</th>
+                  <th>Total</th>
+                </tr>
+                ${filasCitatorios}
+              </table>
+            </div>
+
+          </div>
+
+          <div class="grid-doble">
+
+            <div class="bloque">
+              <h2>Grupos con mayor riesgo</h2>
+              <table>
+                <tr>
+                  <th>Grupo</th>
+                  <th>Alto</th>
+                  <th>Medio</th>
+                  <th>Total</th>
+                </tr>
+                ${filasGrupos}
+              </table>
+            </div>
+
+            <div class="bloque">
+              <h2>Próximas revisiones</h2>
+              <table>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Alumno</th>
+                  <th>Grupo</th>
+                  <th>Responsable</th>
+                </tr>
+                ${filasRevisiones}
+              </table>
+            </div>
+
+          </div>
+
+          <p class="nota">
+  Documento generado por el Sistema Integral de Gestión Escolar.
+  <br>
+  Uso institucional.
+</p>
+
+          <div class="no-print">
+            <button onclick="window.print()">
+              Imprimir / Guardar como PDF
+            </button>
+          </div>
+
+        </body>
+      </html>
+    `);
+
+    ventana.document.close();
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error generando PDF ejecutivo institucional.',
+      'error'
+    );
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
+
+// =====================================
+// AGENDA INSTITUCIONAL
+// =====================================
+
+async function cargarAgendaInstitucional(){
+
+  mostrarLoader('Cargando agenda institucional...');
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API + '?accion=obtenerAgendaInstitucional'
+      );
+
+    const data =
+      await respuesta.json();
+
+    if(!data.ok){
+      mostrarMensajeSistema(
+        'No se pudo cargar la agenda institucional.',
+        'error'
+      );
+      return;
+    }
+
+    const crearFilas = lista => {
+
+      if(!lista || lista.length === 0){
+        return `
+          <tr>
+            <td colspan="5">Sin revisiones registradas</td>
+          </tr>
+        `;
+      }
+
+      return lista.map(item => `
+        <tr>
+          <td>${item.alumno}</td>
+          <td>${item.grupo}</td>
+          <td>${item.revision}</td>
+          <td>${item.responsable || 'Sin responsable'}</td>
+          <td>${item.accion || 'Sin descripción'}</td>
+        </tr>
+      `).join('');
+    };
+
+    const html = `
+      <h2>Agenda institucional</h2>
+
+      <div class="dashboard agenda-dashboard">
+
+        <div class="card agenda-vencida">
+          <h3>🔴 Revisiones vencidas</h3>
+          <p>${data.vencidas.length}</p>
+        </div>
+
+        <div class="card agenda-hoy">
+          <h3>🟡 Revisiones para hoy</h3>
+          <p>${data.hoy.length}</p>
+        </div>
+
+        <div class="card agenda-semana">
+          <h3>🟢 Esta semana</h3>
+          <p>${data.semana.length}</p>
+        </div>
+
+      </div>
+
+      <h3>🔴 Revisiones vencidas</h3>
+      <table>
+        <tr>
+          <th>Alumno</th>
+          <th>Grupo</th>
+          <th>Fecha</th>
+          <th>Responsable</th>
+          <th>Acción</th>
+        </tr>
+        ${crearFilas(data.vencidas)}
+      </table>
+
+      <h3>🟡 Revisiones para hoy</h3>
+      <table>
+        <tr>
+          <th>Alumno</th>
+          <th>Grupo</th>
+          <th>Fecha</th>
+          <th>Responsable</th>
+          <th>Acción</th>
+        </tr>
+        ${crearFilas(data.hoy)}
+      </table>
+
+      <h3>🟢 Revisiones de esta semana</h3>
+      <table>
+        <tr>
+          <th>Alumno</th>
+          <th>Grupo</th>
+          <th>Fecha</th>
+          <th>Responsable</th>
+          <th>Acción</th>
+        </tr>
+        ${crearFilas(data.semana)}
+      </table>
+    `;
+
+    document.getElementById(
+      'resultadoDashboardInstitucional'
+    ).innerHTML = html;
+
+    document.getElementById(
+      'panelEstadisticas'
+    ).style.display = 'block';
+
+    mostrarMensajeSistema(
+      'Agenda institucional cargada.',
+      'exito'
+    );
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error cargando agenda institucional.',
+      'error'
+    );
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
+
+// =====================================
+// PORTAL DE PADRES V1.0
+// =====================================
+
+async function buscarAlumnoPortalPadres(){
+
+  const busqueda =
+  document.getElementById('uidPadre').value.trim();
+
+const password =
+  document.getElementById('passwordPadre').value.trim();
+
+  const contenedor =
+    document.getElementById('resultadoPortalPadres');
+
+  if(!busqueda || !password){
+
+    contenedor.innerHTML = `
+      <p class="mensaje-vacio">
+        Escribe el UID y la contraseña.
+      </p>
+    `;
+
+    return;
+  }
+
+  contenedor.innerHTML = `
+    <p class="mensaje-vacio">
+      Buscando información del alumno...
+    </p>
+  `;
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=loginPadres' +
+'&uid=' +
+encodeURIComponent(busqueda) +
+'&password=' +
+encodeURIComponent(password)
+      );
+
+    const alumnos =
+      await respuesta.json();
+
+    if(!Array.isArray(alumnos) || alumnos.length === 0){
+
+      contenedor.innerHTML = `
+        <p class="mensaje-vacio">
+          No se encontró información con ese dato.
+        </p>
+      `;
+
+      return;
+    }
+
+    let html = `
+      <h2>Resultados encontrados</h2>
+      <div class="resultados-individuales">
+    `;
+
+    alumnos.forEach(alumno => {
+
+      html += `
+        <div class="card-individual">
+
+          <h3>${alumno.nombre}</h3>
+
+          <p><strong>UID:</strong> ${alumno.uid}</p>
+          <p><strong>Grupo:</strong> ${alumno.grupo}</p>
+
+         <button onclick="cargarPortalPadresAlumno(
+  '${alumno.uid}',
+  '${alumno.nombre}',
+  '${alumno.grado}',
+  '${alumno.grupo}',
+  '${password}'
+)">
+
+        </div>
+      `;
+    });
+
+    html += `</div>`;
+
+    contenedor.innerHTML = html;
+
+  }catch(error){
+
+    console.error(error);
+
+    contenedor.innerHTML = `
+      <p class="mensaje-vacio">
+        Error al consultar información.
+      </p>
+    `;
+  }
+}
+
+
+async function cargarPortalPadresAlumno(uid, alumno, grado, grupo, passwordActual){
+
+  const contenedor =
+    document.getElementById('resultadoPortalPadres');
+
+    if(passwordActual === 'escuela'){
+
+  contenedor.innerHTML = `
+    <div class="portal-alumno">
+
+      <h2>Cambio obligatorio de contraseña</h2>
+
+      <p>
+        Por seguridad, debes cambiar la contraseña inicial antes de consultar la información del alumno.
+      </p>
+
+      <input
+        type="password"
+        id="nuevoPasswordPadre"
+        placeholder="Nueva contraseña">
+
+      <input
+        type="password"
+        id="confirmarPasswordPadre"
+        placeholder="Confirmar contraseña">
+
+      <button onclick="guardarNuevoPasswordPadre(
+        '${uid}',
+        '${passwordActual}',
+        '${alumno}',
+        '${grado}',
+        '${grupo}'
+      )">
+        Guardar contraseña
+      </button>
+
+    </div>
+  `;
+
+  return;
+}
+
+  contenedor.innerHTML = `
+    <p class="mensaje-vacio">
+      Cargando historial del alumno...
+    </p>
+  `;
+
+  try{
+
+    const historial =
+      await fetch(
+        API +
+        '?accion=historialIndividual' +
+        '&uid=' +
+        encodeURIComponent(uid)
+      ).then(r => r.json());
+
+    const reportes =
+      await fetch(
+        API +
+        '?accion=reportesPorAlumno' +
+        '&uid=' +
+        encodeURIComponent(uid) +
+        '&alumno=' +
+        encodeURIComponent(alumno)
+      ).then(r => r.json());
+
+    const justificantes =
+      await fetch(
+        API +
+        '?accion=justificantesPorAlumno' +
+        '&uid=' +
+        encodeURIComponent(uid) +
+        '&alumno=' +
+        encodeURIComponent(alumno)
+      ).then(r => r.json());
+
+    const citatorios =
+      await fetch(
+        API +
+        '?accion=citatoriosPorAlumno' +
+        '&uid=' +
+        encodeURIComponent(uid) +
+        '&alumno=' +
+        encodeURIComponent(alumno)
+      ).then(r => r.json());
+
+    const calificaciones =
+      await fetch(
+        API +
+        '?accion=obtenerCalificacionesReporteIndividual' +
+        '&uid=' +
+        encodeURIComponent(uid)
+      ).then(r => r.json());
+
+      const riesgo =
+  await fetch(
+    API +
+    '?accion=obtenerRiesgoAlumnoPadre' +
+    '&uid=' +
+    encodeURIComponent(uid)
+  ).then(r => r.json());
+
+    let html = `
+      <div class="portal-alumno">
+
+        <h2>${historial.nombre || alumno}</h2>
+
+        <p><strong>UID:</strong> ${uid}</p>
+<p><strong>Grupo:</strong> ${grupo || historial.grupo || 'Sin grupo'}</p>
+
+        <div class="dashboard">
+          <div class="card">
+            <h3>Asistencias</h3>
+            <p>${historial.asistencias || 0}</p>
+          </div>
+
+          <div class="card">
+            <h3>Faltas</h3>
+            <p>${historial.faltas || 0}</p>
+          </div>
+
+          <div class="card">
+            <h3>Promedio</h3>
+            <p>${historial.porcentaje || 0}%</p>
+          </div>
+        </div>
+
+        ${bloqueRiesgoPortal(riesgo)}
+
+        <h3>Calificaciones</h3>
+        ${tablaCalificacionesPortal(calificaciones.datos || [])}
+
+        <h3>Reportes escolares</h3>
+        ${tablaReportesPortal(reportes.reportes || [])}
+
+        <h3>Justificantes</h3>
+        ${tablaJustificantesPortal(justificantes.justificantes || [])}
+
+        <h3>Citatorios</h3>
+        ${tablaCitatoriosPortal(citatorios.citatorios || [])}
+
+        <br>
+
+        <button onclick="buscarAlumnoPortalPadres()">
+          Regresar
+        </button>
+
+      </div>
+    `;
+
+    contenedor.innerHTML = html;
+
+  }catch(error){
+
+    console.error(error);
+
+    contenedor.innerHTML = `
+      <p class="mensaje-vacio">
+        Error cargando información del alumno.
+      </p>
+    `;
+  }
+}
+
+
+function tablaCalificacionesPortal(datos){
+
+  if(datos.length === 0){
+    return `<p class="mensaje-vacio">Sin calificaciones registradas.</p>`;
+  }
+
+  let html = `
+    <table>
+      <tr>
+        <th>Materia</th>
+        <th>1°</th>
+        <th>2°</th>
+        <th>3°</th>
+        <th>Promedio</th>
+        <th>Situación</th>
+      </tr>
+  `;
+
+  datos.forEach(item => {
+    html += `
+      <tr>
+        <td>${item.materia}</td>
+        <td>${item.p1}</td>
+        <td>${item.p2}</td>
+        <td>${item.p3}</td>
+        <td>${item.promedio}</td>
+        <td>${item.situacion}</td>
+      </tr>
+    `;
+  });
+
+  html += `</table>`;
+
+  return html;
+}
+
+
+function tablaReportesPortal(datos){
+
+  if(datos.length === 0){
+    return `<p class="mensaje-vacio">Sin reportes escolares.</p>`;
+  }
+
+  let html = `
+    <table>
+      <tr>
+        <th>Fecha</th>
+        <th>Tipo</th>
+        <th>Docente</th>
+        <th>Descripción</th>
+        <th>Acción</th>
+      </tr>
+  `;
+
+  datos.forEach(item => {
+    html += `
+      <tr>
+        <td>${formatearFechaReporte(item.fecha)}</td>
+        <td>${item.tipoReporte || ''}</td>
+        <td>${item.docente || ''}</td>
+        <td>${item.descripcion || ''}</td>
+        <td>${item.accionTomada || ''}</td>
+      </tr>
+    `;
+  });
+
+  html += `</table>`;
+
+  return html;
+}
+
+
+function tablaJustificantesPortal(datos){
+
+  if(datos.length === 0){
+    return `<p class="mensaje-vacio">Sin justificantes registrados.</p>`;
+  }
+
+  let html = `
+    <table>
+      <tr>
+        <th>Fecha</th>
+        <th>Tipo</th>
+        <th>Motivo</th>
+        <th>Solicita</th>
+      </tr>
+  `;
+
+  datos.forEach(item => {
+    html += `
+      <tr>
+        <td>${formatearFechaReporte(item.fecha)}</td>
+        <td>${item.tipoJustificante || ''}</td>
+        <td>${item.motivo || ''}</td>
+        <td>${item.solicita || ''}</td>
+      </tr>
+    `;
+  });
+
+  html += `</table>`;
+
+  return html;
+}
+
+
+function tablaCitatoriosPortal(datos){
+
+  if(datos.length === 0){
+    return `<p class="mensaje-vacio">Sin citatorios registrados.</p>`;
+  }
+
+  let html = `
+    <table>
+      <tr>
+        <th>Fecha cita</th>
+        <th>Hora</th>
+        <th>Motivo</th>
+        <th>Responsable</th>
+        <th>Seguimiento</th>
+      </tr>
+  `;
+
+  datos.forEach(item => {
+    html += `
+      <tr>
+        <td>${formatearFechaReporte(item.fechaCitatorio)}</td>
+        <td>${formatearHoraCorta(item.horaCitatorio)}</td>
+        <td>${item.motivo || ''}</td>
+        <td>${item.responsable || ''}</td>
+        <td>${item.seguimiento || ''}</td>
+      </tr>
+    `;
+  });
+
+  html += `</table>`;
+
+  return html;
+}
+
+// =====================================
+// GUARDAR NUEVA CONTRASEÑA PADRE
+// =====================================
+
+async function guardarNuevoPasswordPadre(
+  uid,
+  passwordActual,
+  alumno,
+  grado,
+  grupo
+){
+
+  const nuevo =
+    document.getElementById('nuevoPasswordPadre').value.trim();
+
+  const confirmar =
+    document.getElementById('confirmarPasswordPadre').value.trim();
+
+  const contenedor =
+    document.getElementById('resultadoPortalPadres');
+
+  if(!nuevo || !confirmar){
+
+    contenedor.innerHTML += `
+      <p class="mensaje-vacio">
+        Escribe y confirma la nueva contraseña.
+      </p>
+    `;
+
+    return;
+  }
+
+  if(nuevo !== confirmar){
+
+    contenedor.innerHTML += `
+      <p class="mensaje-vacio">
+        Las contraseñas no coinciden.
+      </p>
+    `;
+
+    return;
+  }
+
+  if(nuevo.length < 6){
+
+    contenedor.innerHTML += `
+      <p class="mensaje-vacio">
+        La contraseña debe tener mínimo 6 caracteres.
+      </p>
+    `;
+
+    return;
+  }
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=cambiarPasswordPadre' +
+        '&uid=' +
+        encodeURIComponent(uid) +
+        '&passwordActual=' +
+        encodeURIComponent(passwordActual) +
+        '&passwordNuevo=' +
+        encodeURIComponent(nuevo)
+      );
+
+    const datos =
+      await respuesta.json();
+
+    if(!datos.success){
+
+      contenedor.innerHTML += `
+        <p class="mensaje-vacio">
+          ${datos.mensaje || 'No se pudo cambiar la contraseña.'}
+        </p>
+      `;
+
+      return;
+    }
+
+    await cargarPortalPadresAlumno(
+      uid,
+      alumno,
+      grado,
+      grupo,
+      nuevo
+    );
+
+  }catch(error){
+
+    console.error(error);
+
+    contenedor.innerHTML += `
+      <p class="mensaje-vacio">
+        Error al cambiar la contraseña.
+      </p>
+    `;
+  }
+}
+
+// =====================================
+// RECUPERAR CONTRASEÑA PADRE
+// =====================================
+
+function mostrarRecuperarPasswordPadre(){
+
+  document.getElementById('resultadoPortalPadres').innerHTML = `
+    <div class="portal-alumno">
+
+      <h2>Recuperar contraseña</h2>
+
+      <input
+        type="text"
+        id="uidRecuperacionPadre"
+        placeholder="UID del alumno">
+
+      <button onclick="solicitarCodigoPasswordPadre()">
+        Enviar código al correo
+      </button>
+
+      <hr>
+
+      <input
+        type="text"
+        id="codigoRecuperacionPadre"
+        placeholder="Código recibido">
+
+      <input
+        type="password"
+        id="nuevoPasswordRecuperacionPadre"
+        placeholder="Nueva contraseña">
+
+      <button onclick="restablecerPasswordPadre()">
+        Restablecer contraseña
+      </button>
+
+      <p id="mensajeRecuperacionPadre"></p>
+
+    </div>
+  `;
+}
+
+async function solicitarCodigoPasswordPadre(){
+
+  const uid =
+    document.getElementById('uidRecuperacionPadre').value.trim();
+
+  const mensaje =
+    document.getElementById('mensajeRecuperacionPadre');
+
+  mensaje.textContent = 'Enviando código...';
+
+  const respuesta =
+    await fetch(
+      API +
+      '?accion=solicitarCodigoPasswordPadre' +
+      '&uid=' +
+      encodeURIComponent(uid)
+    );
+
+  const datos = await respuesta.json();
+
+  mensaje.textContent = datos.mensaje;
+}
+
+async function restablecerPasswordPadre(){
+
+  const uid =
+    document.getElementById('uidRecuperacionPadre').value.trim();
+
+  const codigo =
+    document.getElementById('codigoRecuperacionPadre').value.trim();
+
+  const nuevoPassword =
+    document.getElementById('nuevoPasswordRecuperacionPadre').value.trim();
+
+  const mensaje =
+    document.getElementById('mensajeRecuperacionPadre');
+
+  mensaje.textContent = 'Restableciendo contraseña...';
+
+  const respuesta =
+    await fetch(
+      API +
+      '?accion=restablecerPasswordPadre' +
+      '&uid=' +
+      encodeURIComponent(uid) +
+      '&codigo=' +
+      encodeURIComponent(codigo) +
+      '&nuevoPassword=' +
+      encodeURIComponent(nuevoPassword)
+    );
+
+  const datos = await respuesta.json();
+
+  mensaje.textContent = datos.mensaje;
+}
+
+// =====================================
+// ACTUALIZAR DATOS DEL TUTOR ADMIN
+// =====================================
+
+async function actualizarDatosTutorAdmin(uid){
+
+  const nombreTutor =
+    document.getElementById('nombreTutor_' + uid).value.trim();
+
+  const telefonoTutor =
+    document.getElementById('telefonoTutor_' + uid).value.trim();
+
+  const correoTutor =
+    document.getElementById('correoTutor_' + uid).value.trim();
+
+  mostrarLoader(
+    'Actualizando datos del tutor...'
+  );
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=actualizarDatosTutor' +
+        '&uid=' + encodeURIComponent(uid) +
+        '&nombreTutor=' + encodeURIComponent(nombreTutor) +
+        '&telefonoTutor=' + encodeURIComponent(telefonoTutor) +
+        '&correoTutor=' + encodeURIComponent(correoTutor)
+      );
+
+    const datos =
+      await respuesta.json();
+
+    if(datos.success){
+
+      mostrarMensajeSistema(
+        'Datos del tutor actualizados correctamente.',
+        'exito'
+      );
+
+    }else{
+
+      mostrarMensajeSistema(
+        datos.mensaje || 'No se pudieron actualizar los datos del tutor.',
+        'error'
+      );
+    }
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error al actualizar datos del tutor.',
+      'error'
+    );
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
+
+// =====================================
+// PANEL ALERTAS A PADRES
+// INASISTENCIAS
+// =====================================
+
+async function cargarPanelAlertasPadres(){
+
+  mostrarLoader('Cargando alertas a padres...');
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API + '?accion=obtenerPanelAlertasInasistencia'
+      );
+
+    const datos =
+      await respuesta.json();
+
+    if(!datos.success){
+      mostrarMensajeSistema(
+        'No se pudo cargar el panel de alertas.',
+        'error'
+      );
+      return;
+    }
+
+    let resumenGrupos = '';
+
+    Object.keys(datos.grupos || {}).forEach(grupo => {
+      resumenGrupos += `
+        <div class="card">
+          <h3>${grupo}</h3>
+          <p>${datos.grupos[grupo]}</p>
+        </div>
+      `;
+    });
+
+    let filas = '';
+
+    if(!datos.alumnos || datos.alumnos.length === 0){
+
+      filas = `
+        <tr>
+          <td colspan="6">
+            No hay inasistencias registradas.
+          </td>
+        </tr>
+      `;
+
+    }else{
+
+      datos.alumnos.forEach(a => {
+
+        filas += `
+          <tr>
+            <td>${a.alumno}</td>
+            <td>${a.grupoCompleto}</td>
+            <td>${a.tutor || 'Sin tutor'}</td>
+            <td>${a.telefono || 'Sin teléfono'}</td>
+            <td>${a.correo || 'Sin correo'}</td>
+            <td>
+              ${
+                a.correo
+                ? '<span class="badge-ok">Listo</span>'
+                : '<span class="badge-error">Sin correo</span>'
+              }
+            </td>
+
+            <td>
+              <button onclick="justificarInasistenciaAlerta(${a.filaAlmacen})">
+                Justificar
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    const botonDeshabilitado =
+      datos.yaEnviado ||
+      !datos.fecha ||
+      datos.total === 0;
+
+    const textoBoton =
+      datos.yaEnviado
+      ? 'Correos ya enviados'
+      : 'Enviar correos de inasistencia';
+
+    const html = `
+      <h3>Alertas a padres</h3>
+
+      <div class="dashboard">
+
+        <div class="card">
+          <h3>Fecha detectada</h3>
+          <p>${datos.fecha || 'Sin fecha'}</p>
+        </div>
+
+        <div class="card">
+          <h3>Inasistencias</h3>
+          <p>${datos.total}</p>
+        </div>
+
+        <div class="card">
+          <h3>Con correo</h3>
+          <p>${datos.conCorreo}</p>
+        </div>
+
+        <div class="card">
+          <h3>Sin correo</h3>
+          <p>${datos.sinCorreo}</p>
+        </div>
+
+      </div>
+
+      <h4>Resumen por grupo</h4>
+
+      <div class="dashboard">
+        ${resumenGrupos || '<p class="mensaje-vacio">Sin datos por grupo.</p>'}
+      </div>
+
+        ${
+        datos.yaEnviado
+        ? '<p class="mensaje-vacio">Los correos para esta fecha ya fueron enviados. El botón se habilitará cuando exista una nueva fecha de asistencia.</p>'
+        : ''
+      }
+
+      <div class="tabla-container">
+        <table>
+          <tr>
+            <th>Alumno</th>
+            <th>Grupo</th>
+            <th>Tutor</th>
+            <th>Teléfono</th>
+            <th>Correo</th>
+            <th>Estatus</th>
+            <th>Acción</th>
+          </tr>
+          ${filas}
+        </table>
+      </div>
+
+      <div class="acciones-alertas-padres">
+        <button
+          id="btnEnviarCorreosInasistencia"
+          onclick="enviarCorreosInasistenciaPadres()"
+          ${botonDeshabilitado ? 'disabled' : ''}>
+          ${textoBoton}
+        </button>
+      </div>
+    `;
+
+    const panelEstadisticas =
+      document.getElementById('panelEstadisticas');
+
+    const contenedor =
+      document.getElementById('resultadoDashboardInstitucional');
+
+    if(panelEstadisticas){
+      panelEstadisticas.style.display = 'block';
+    }
+
+    if(contenedor){
+      contenedor.innerHTML = html;
+    }
+
+    mostrarMensajeSistema(
+      'Panel de alertas cargado.',
+      'exito'
+    );
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error cargando alertas a padres.',
+      'error'
+    );
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
+
+// =====================================
+// ENVIAR CORREOS DE INASISTENCIA
+// =====================================
+
+async function enviarCorreosInasistenciaPadres(){
+
+  const confirmar =
+    await mostrarModalConfirmacion(
+      'Enviar correos',
+      '¿Deseas enviar los correos de inasistencia a los tutores con correo registrado?'
+    );
+
+  if(!confirmar){
+    return;
+  }
+
+  const boton =
+    document.getElementById('btnEnviarCorreosInasistencia');
+
+  if(boton){
+    boton.disabled = true;
+    boton.textContent = 'Enviando correos...';
+  }
+
+  mostrarLoader('Enviando correos de inasistencia...');
+
+  try{
+
+    const usuarioActivo =
+      JSON.parse(
+        localStorage.getItem('usuarioActivo')
+      );
+
+    const usuario =
+      usuarioActivo && usuarioActivo.nombre
+      ? usuarioActivo.nombre
+      : 'ADMIN';
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=enviarCorreosInasistenciaPadres' +
+        '&usuario=' +
+        encodeURIComponent(usuario)
+      );
+
+    const datos =
+      await respuesta.json();
+
+    if(datos.success){
+
+      mostrarMensajeSistema(
+        'Correos enviados: ' +
+        datos.enviados +
+        '. Sin correo: ' +
+        datos.sinCorreo,
+        'exito'
+      );
+
+      await cargarPanelAlertasPadres();
+
+    }else{
+
+      mostrarMensajeSistema(
+        datos.mensaje || 'No se pudieron enviar los correos.',
+        'error'
+      );
+
+      await cargarPanelAlertasPadres();
+    }
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error enviando correos de inasistencia.',
+      'error'
+    );
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
+
+// =====================================
+// JUSTIFICAR INASISTENCIA DESDE PANEL
+// =====================================
+
+async function justificarInasistenciaAlerta(fila){
+
+  mostrarLoader('Justificando inasistencia...');
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=justificarInasistenciaAlerta' +
+        '&fila=' +
+        encodeURIComponent(fila)
+      );
+
+    const datos =
+      await respuesta.json();
+
+    if(datos.success){
+
+      mostrarMensajeSistema(
+        'Inasistencia justificada correctamente.',
+        'exito'
+      );
+
+      await cargarPanelAlertasPadres();
+
+    }else{
+
+      mostrarMensajeSistema(
+        datos.mensaje || 'No se pudo justificar.',
+        'error'
+      );
+    }
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error al justificar inasistencia.',
+      'error'
+    );
+
+  }finally{
+
+    ocultarLoader();
+  }
+}
+
+// =====================================
+// RIESGO ESCOLAR PORTAL PADRES
+// =====================================
+
+function bloqueRiesgoPortal(riesgo){
+
+  if(!riesgo || !riesgo.ok){
+
+    return `
+      <p class="mensaje-vacio">
+        No se pudo calcular el riesgo escolar.
+      </p>
+    `;
+  }
+
+  let icono = '🟢';
+  let texto = 'SIN RIESGO';
+
+  if(riesgo.riesgo === 'ALTO'){
+    icono = '🔴';
+    texto = 'RIESGO ALTO';
+  }else if(riesgo.riesgo === 'MEDIO'){
+    icono = '🟡';
+    texto = 'RIESGO MEDIO';
+  }else if(riesgo.riesgo === 'BAJO'){
+    icono = '🟢';
+    texto = 'RIESGO BAJO';
+  }
+
+  let motivos = '';
+
+  (riesgo.motivos || []).forEach(item => {
+
+    motivos += `
+      <li>${item}</li>
+    `;
+  });
+
+  return `
+    <div class="card-riesgo-padre">
+
+      <h3>
+        🚦 Riesgo escolar
+      </h3>
+
+      <h2>
+        ${icono} ${texto}
+      </h2>
+
+      <p>
+        <strong>Puntaje:</strong>
+        ${riesgo.puntaje || 0}
+      </p>
+
+      ${
+        motivos
+        ? `
+          <ul>
+            ${motivos}
+          </ul>
+        `
+        : `
+          <p>
+            Sin factores de riesgo detectados.
+          </p>
+        `
+      }
+
+    </div>
+  `;
+}
+
+// =====================================
+// ENVIAR ALERTAS DE RIESGO ALTO
+// =====================================
+
+async function enviarAlertasRiesgoAlto(){
+
+  mostrarLoader(
+    'Enviando alertas de riesgo alto...'
+  );
+
+  try{
+
+    const respuesta =
+      await fetch(
+        API +
+        '?accion=enviarAlertasRiesgoAlto'
+      );
+
+    const datos =
+      await respuesta.json();
+
+    if(datos.success){
+
+      mostrarMensajeSistema(
+        'Alertas enviadas: ' +
+        datos.enviados +
+        '. Sin correo: ' +
+        datos.sinCorreo,
+        'exito'
+      );
+
+    }else{
+
+      mostrarMensajeSistema(
+        datos.mensaje ||
+        'No se pudieron enviar las alertas.',
+        'error'
+      );
+    }
+
+  }catch(error){
+
+    console.error(error);
+
+    mostrarMensajeSistema(
+      'Error enviando alertas de riesgo alto.',
+      'error'
+    );
 
   }finally{
 
